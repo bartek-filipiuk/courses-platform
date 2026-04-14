@@ -31,12 +31,22 @@ const securityHeaders = [
 	},
 ];
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 const nextConfig: NextConfig = {
 	async headers() {
 		return [
 			{
 				source: "/:path*",
 				headers: securityHeaders,
+			},
+		];
+	},
+	async rewrites() {
+		return [
+			{
+				source: "/api/backend/:path*",
+				destination: `${apiUrl}/api/:path*`,
 			},
 		];
 	},
