@@ -1,10 +1,12 @@
-"""Auth routes — OAuth login, refresh, logout, me."""
+"""Auth routes — OAuth login, refresh, logout, me, API keys."""
 
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
+from app.auth.api_keys import generate_api_key, list_user_keys, revoke_key
 from app.auth.dependencies import get_current_user_token
 from app.auth.jwt import (
     TokenError,
@@ -15,6 +17,13 @@ from app.auth.jwt import (
 from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+class GenerateApiKeyRequest(BaseModel):
+    name: str
+
+
+# --- OAuth ---
 
 
 @router.get("/github/login")
@@ -32,8 +41,10 @@ async def github_login() -> RedirectResponse:
 @router.get("/github/callback")
 async def github_callback(code: str) -> dict:
     # TODO: Exchange code for token, fetch user info, upsert user
-    # For now return placeholder — will be completed with DB integration
     return {"message": "OAuth callback received", "code": code}
+
+
+# --- JWT Auth ---
 
 
 @router.get("/me")
@@ -58,8 +69,6 @@ async def refresh_token(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     user_id = payload["sub"]
-
-    # Issue new token pair (rotation: old refresh is implicitly invalidated)
     new_access = create_access_token(
         data={"sub": user_id, "role": payload.get("role", "student"), "email": payload.get("email")}
     )
@@ -76,3 +85,31 @@ async def refresh_token(request: Request) -> dict:
 async def logout(token_data: dict = Depends(get_current_user_token)) -> dict:
     # TODO: Add token to Redis blacklist with TTL = remaining JWT lifetime
     return {"message": "Logged out successfully"}
+
+
+# --- API Keys ---
+
+
+@router.post("/api-key/generate", status_code=201)
+async def api_key_generate(
+    body: GenerateApiKeyRequest,
+    token_data: dict = Depends(get_current_user_token),
+) -> dict:
+    result = generate_api_key(user_id=token_data["sub"], name=body.name)
+    return result
+
+
+@router.get("/api-key/list")
+async def api_key_list(token_data: dict = Depends(get_current_user_token)) -> list[dict]:
+    return list_user_keys(user_id=token_data["sub"])
+
+
+@router.delete("/api-key/revoke/{key_id}")
+async def api_key_revoke(
+    key_id: str,
+    token_data: dict = Depends(get_current_user_token),
+) -> dict:
+    success = revoke_key(key_id=key_id, user_id=token_data["sub"])
+    if not success:
+        raise HTTPException(status_code=404, detail="API key not found")
+    return {"message": "API key revoked"}
