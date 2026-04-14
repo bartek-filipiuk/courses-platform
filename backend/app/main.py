@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.auth.router import router as auth_router
 from app.config import settings
 
 app = FastAPI(
@@ -39,6 +40,9 @@ async def catch_exceptions_middleware(request: Request, call_next):  # noqa: ANN
                 "traceback": traceback.format_exc(),
             },
         )
+
+
+app.include_router(auth_router)
 
 
 @app.get("/api/health")
