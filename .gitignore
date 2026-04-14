@@ -1,19 +1,18 @@
 # Environment
 .env
 .env.local
-.env.*.local
+.env.production
 
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.egg-info/
 dist/
 build/
-.venv/
-venv/
+.eggs/
+*.egg
 
-# Node
+# Node.js
 node_modules/
 .next/
 out/
@@ -29,9 +28,19 @@ out/
 Thumbs.db
 
 # Docker
-*.log
+docker-compose.override.yml
 
-# Test / Coverage
-.coverage
+# Database
+*.db
+*.sqlite3
+
+# Coverage
 htmlcov/
+.coverage
+coverage.xml
+
+# Pytest
 .pytest_cache/
+
+# Ruff
+.ruff_cache/

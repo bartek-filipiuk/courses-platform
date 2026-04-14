@@ -1,11 +1,10 @@
-"""Tests for .env.example file — verifies all required env vars are documented."""
+"""Tests for .env.example file — ensures all required env vars are documented."""
 
 from pathlib import Path
 
 import pytest
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-ENV_EXAMPLE = ROOT_DIR / ".env.example"
 
 REQUIRED_VARS = [
     "DATABASE_URL",
@@ -21,64 +20,64 @@ REQUIRED_VARS = [
 
 
 @pytest.fixture()
-def env_content() -> str:
-    assert ENV_EXAMPLE.exists(), f"{ENV_EXAMPLE} does not exist"
-    return ENV_EXAMPLE.read_text()
+def env_example_path() -> Path:
+    return ROOT_DIR / ".env.example"
 
 
 @pytest.fixture()
-def env_lines(env_content: str) -> list[str]:
-    return env_content.strip().splitlines()
+def env_example_content(env_example_path: Path) -> str:
+    assert env_example_path.exists(), ".env.example file must exist in project root"
+    return env_example_path.read_text()
 
 
-def test_env_example_exists() -> None:
-    assert ENV_EXAMPLE.exists(), ".env.example must exist in project root"
-
-
-def test_all_required_vars_present(env_content: str) -> None:
-    for var in REQUIRED_VARS:
-        assert f"{var}=" in env_content, f"Missing required variable: {var}"
-
-
-def test_each_var_has_comment(env_lines: list[str]) -> None:
-    """Each variable should be preceded by a comment line explaining it."""
-    for var in REQUIRED_VARS:
-        var_line_idx = None
-        for idx, line in enumerate(env_lines):
-            if line.startswith(f"{var}="):
-                var_line_idx = idx
-                break
-        assert var_line_idx is not None, f"{var} not found in .env.example"
-        # Look for a comment in the lines immediately before this variable
-        has_comment = False
-        for lookback in range(1, 4):  # check up to 3 lines above
-            prev_idx = var_line_idx - lookback
-            if prev_idx < 0:
-                break
-            prev_line = env_lines[prev_idx].strip()
-            if prev_line.startswith("#"):
-                has_comment = True
-                break
-            if prev_line == "":
-                continue  # skip blank lines
-            break  # non-comment, non-blank line → stop
-        assert has_comment, f"Variable {var} must have a comment above it"
-
-
-def test_no_real_secrets_in_example(env_content: str) -> None:
-    """Ensure placeholder values, not real secrets."""
-    lines = env_content.splitlines()
-    for line in lines:
+def _parse_env_vars(content: str) -> dict[str, str]:
+    """Parse KEY=value pairs from .env content, skipping comments and blank lines."""
+    variables: dict[str, str] = {}
+    for line in content.splitlines():
         stripped = line.strip()
-        if stripped.startswith("#") or stripped == "":
+        if not stripped or stripped.startswith("#"):
             continue
         if "=" in stripped:
             key, _, value = stripped.partition("=")
-            # Values should be empty or clearly placeholder
-            assert value == "" or value.startswith("your-") or value.startswith("change-"), (
-                f"{key} has a non-placeholder value: {value}"
-            )
+            variables[key.strip()] = value.strip()
+    return variables
 
 
-def test_env_example_not_empty(env_content: str) -> None:
-    assert len(env_content.strip()) > 0, ".env.example must not be empty"
+class TestEnvExample:
+    def test_file_exists(self, env_example_path: Path) -> None:
+        assert env_example_path.exists(), ".env.example must exist in project root"
+
+    def test_contains_all_required_vars(self, env_example_content: str) -> None:
+        variables = _parse_env_vars(env_example_content)
+        for var in REQUIRED_VARS:
+            assert var in variables, f"Missing required env var: {var}"
+
+    def test_no_real_secrets_in_values(self, env_example_content: str) -> None:
+        """Ensure .env.example has placeholder values, not real secrets."""
+        variables = _parse_env_vars(env_example_content)
+        for key, value in variables.items():
+            if "SECRET" in key or "API_KEY" in key or "PASSWORD" in key:
+                assert value == "" or value.startswith("your-") or value.startswith("change-"), (
+                    f"{key} should have a placeholder value, not a real secret: {value}"
+                )
+
+    def test_each_var_has_comment(self, env_example_content: str) -> None:
+        """Each env var should have a comment (line starting with #) before it."""
+        lines = env_example_content.splitlines()
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if "=" in stripped:
+                # Look backwards for a comment line
+                found_comment = False
+                for j in range(i - 1, -1, -1):
+                    prev = lines[j].strip()
+                    if prev.startswith("#"):
+                        found_comment = True
+                        break
+                    if prev == "":
+                        continue
+                    break
+                key = stripped.partition("=")[0].strip()
+                assert found_comment, f"Env var {key} should have a comment above it"

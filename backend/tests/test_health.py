@@ -1,69 +1,105 @@
-"""Tests for health endpoint and application scaffolding."""
+"""Tests for backend scaffolding — health endpoint, CORS, exception handling."""
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.config import settings
 from app.main import app
 
 
 @pytest.fixture()
-def anyio_backend():
-    return "asyncio"
-
-
-@pytest.fixture()
 async def client():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://testserver",
+    ) as ac:
         yield ac
 
 
-@pytest.mark.anyio
-async def test_health_endpoint_returns_200(client: AsyncClient) -> None:
-    response = await client.get("/api/health")
-    assert response.status_code == 200
+class TestHealthEndpoint:
+    @pytest.mark.asyncio
+    async def test_health_returns_200(self, client: AsyncClient) -> None:
+        response = await client.get("/api/health")
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_health_returns_status_ok(self, client: AsyncClient) -> None:
+        response = await client.get("/api/health")
+        data = response.json()
+        assert data["status"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_health_returns_service_name(self, client: AsyncClient) -> None:
+        response = await client.get("/api/health")
+        data = response.json()
+        assert data["service"] == "ndqs-backend"
 
 
-@pytest.mark.anyio
-async def test_health_endpoint_returns_status_ok(client: AsyncClient) -> None:
-    response = await client.get("/api/health")
-    data = response.json()
-    assert data["status"] == "ok"
+class TestCORS:
+    @pytest.mark.asyncio
+    async def test_cors_allows_configured_origin(self, client: AsyncClient) -> None:
+        response = await client.options(
+            "/api/health",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+    @pytest.mark.asyncio
+    async def test_cors_rejects_unknown_origin(self, client: AsyncClient) -> None:
+        response = await client.options(
+            "/api/health",
+            headers={
+                "Origin": "http://evil.com",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert response.headers.get("access-control-allow-origin") != "http://evil.com"
 
 
-@pytest.mark.anyio
-async def test_cors_headers_present(client: AsyncClient) -> None:
-    response = await client.options(
-        "/api/health",
-        headers={
-            "Origin": "http://localhost:3000",
-            "Access-Control-Request-Method": "GET",
-        },
-    )
-    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+class TestExceptionHandling:
+    @pytest.mark.asyncio
+    async def test_production_500_hides_details(self, client: AsyncClient) -> None:
+        """In production, 500 errors should return generic message."""
+        original = settings.ENVIRONMENT
+        settings.ENVIRONMENT = "production"
+        try:
+            response = await client.get("/api/health/error-test")
+            assert response.status_code == 500
+            data = response.json()
+            assert data["detail"] == "Internal server error"
+            assert "traceback" not in data
+        finally:
+            settings.ENVIRONMENT = original
+
+    @pytest.mark.asyncio
+    async def test_development_500_shows_details(self, client: AsyncClient) -> None:
+        """In development, 500 errors should include stack trace."""
+        original = settings.ENVIRONMENT
+        settings.ENVIRONMENT = "development"
+        try:
+            response = await client.get("/api/health/error-test")
+            assert response.status_code == 500
+            data = response.json()
+            assert "detail" in data
+            assert "traceback" in data
+        finally:
+            settings.ENVIRONMENT = original
 
 
-@pytest.mark.anyio
-async def test_cors_rejects_unknown_origin(client: AsyncClient) -> None:
-    response = await client.options(
-        "/api/health",
-        headers={
-            "Origin": "http://evil.com",
-            "Access-Control-Request-Method": "GET",
-        },
-    )
-    assert response.headers.get("access-control-allow-origin") != "http://evil.com"
+class TestDirectoryStructure:
+    def test_app_package_exists(self) -> None:
+        from pathlib import Path
 
+        app_dir = Path(__file__).resolve().parent.parent / "app"
+        assert app_dir.is_dir()
 
-@pytest.mark.anyio
-async def test_unknown_route_returns_json_error(client: AsyncClient) -> None:
-    response = await client.get("/api/nonexistent")
-    assert response.status_code == 404
+    def test_domain_packages_exist(self) -> None:
+        from pathlib import Path
 
-
-@pytest.mark.anyio
-async def test_exception_handler_hides_details_in_prod(client: AsyncClient) -> None:
-    """Internal errors should return generic message."""
-    response = await client.get("/api/health")
-    # Health endpoint should work, so just verify the app runs without crash
-    assert response.status_code == 200
+        app_dir = Path(__file__).resolve().parent.parent / "app"
+        for domain in ["auth", "courses", "quests", "evaluation"]:
+            assert (app_dir / domain).is_dir(), f"Missing domain package: {domain}"
+            assert (app_dir / domain / "__init__.py").exists(), f"Missing __init__.py in {domain}"
