@@ -1,0 +1,201 @@
+# Rozszerzenie NDQS: Multi-Course & Starter Packs
+**Architektura Marketplace i Katalog Plików do Budowy**
+
+Platforma NDQS została zaprojektowana z myślą o obsłudze wielu kursów ("Operacji") jednocześnie. Aby to w pełni zrealizować z punktu widzenia UX kursanta, musimy dodać dwie kluczowe funkcjonalności: **Katalog Kursów (Marketplace)** oraz **Mechanizm Starter Packów**.
+
+Poniższy dokument opisuje te mechanizmy oraz zawiera kompletną listę plików potrzebnych do rozpoczęcia kodowania platformy.
+
+---
+
+## 1. Katalog Kursów (Marketplace)
+
+Aby kursant mógł wybierać spośród wielu dostępnych misji, potrzebujemy ekranu pełniącego rolę "Huba Operacyjnego".
+
+### UX/UI Katalogu
+*   **Estetyka:** Dark mode, styl "Wybór Misji" z gier akcji (np. Hitman, Helldivers).
+*   **Karty Kursów (Mission Briefs):** Zamiast typowych kafelków kursów, każda karta to "Dossier Operacji".
+    *   *Tytuł fabularny:* "Operacja: Skynet Breaker"
+    *   *Podtytuł techniczny:* "Zbuduj i wdróż FastAPI Backend"
+    *   *Poziom zagrożenia (Trudność):* Klasa C (Początkujący) / Klasa A (Ekspert)
+    *   *Tagi technologiczne:* `[Python]`, `[Docker]`, `[PostgreSQL]`
+    *   *Status:* "Dostępna" / "W toku" / "Zakończona sukcesem"
+
+### Flow Zapisów (Enrollment)
+1. Kursant przegląda katalog (`GET /api/courses?published=true`).
+2. Klika "Akceptuj Misję" (Enroll).
+3. Backend tworzy wpis w tabeli `enrollments` (`POST /api/courses/{id}/enroll`).
+4. Backend inicjalizuje maszynę stanów dla tego użytkownika: pierwszy quest w kursie dostaje status `AVAILABLE`, reszta `LOCKED`.
+5. Kursant zostaje przekierowany do widoku **Starter Packa**.
+
+---
+
+## 2. Mechanizm Starter Packów
+
+Gdy kursant realizuje wiele kursów, nie może trzymać całego kodu w jednym folderze, ponieważ różne kursy mają różnych Game Masterów (różne system prompty) i wymagają innych zmiennych środowiskowych.
+
+Rozwiązaniem jest **Starter Pack** generowany dynamicznie per kurs.
+
+### Co zawiera Starter Pack?
+Kiedy kursant klika "Pobierz Starter Pack" na ekranie startowym misji, backend (FastAPI) generuje plik `.zip` w locie (używając np. modułu `zipfile` w Pythonie), który zawiera:
+
+1.  `CLAUDE.md` (lub `.cursorrules`) – Unikalny dla danego kursu. Zawiera System Prompt konkretnego Game Mastera (np. ORACLE) oraz ID kursu.
+2.  `.env.example` – Szablon zmiennych środowiskowych, w tym miejsce na `NDQS_API_KEY`.
+3.  `README.md` – Instrukcja startowa ("Jak rozpocząć operację").
+4.  *(Opcjonalnie)* Szkielet kodu – np. pusty plik `main.py` lub `package.json` z wymaganymi zależnościami.
+
+### Flow Generowania (Backend)
+```python
+# app/courses/router.py
+from fastapi import APIRouter, Response
+import zipfile
+import io
+
+router = APIRouter()
+
+@router.get("/{course_id}/starter-pack")
+async def download_starter_pack(course_id: str, current_user = Depends(get_current_user)):
+    course = await get_course(course_id)
+    
+    # Tworzenie ZIPa w pamięci
+    zip_buffer = io.BytesList()
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        
+        # 1. Generowanie CLAUDE.md z promptem z bazy
+        claude_content = f"""# {course.narrative_title}
+{course.persona_prompt}
+Użyj API: https://api.ndqs.com/api/quests/evaluate
+"""
+        zip_file.writestr("CLAUDE.md", claude_content)
+        
+        # 2. Generowanie .env.example
+        env_content = "NDQS_API_KEY=wklej_swoj_klucz_tutaj\n"
+        zip_file.writestr(".env.example", env_content)
+        
+        # 3. README.md
+        readme = f"# {course.title}\nZainstaluj zależności i czekaj na instrukcje."
+        zip_file.writestr("README.md", readme)
+
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": f"attachment; filename=ndqs_{course_id}_starter.zip"}
+    )
+```
+
+Dzięki temu każdy kurs jest w pełni odizolowany w lokalnym środowisku kursanta, a Claude Code / Cursor wie dokładnie, w jakim kontekście fabularnym się znajduje.
+
+---
+
+## 3. Kompletna Lista Plików do Zbudowania (Project Tree)
+
+Aby rozpocząć budowę platformy, musisz utworzyć poniższą strukturę plików. Jest to standardowy podział na repozytorium frontendowe (Next.js) i backendowe (FastAPI).
+
+### 📁 Frontend (Next.js 14+ App Router)
+
+```text
+ndqs-frontend/
+├── package.json
+├── tailwind.config.ts          # Konfiguracja kolorów (Dark mode, neon accents)
+├── .env.local                  # NEXT_PUBLIC_API_URL, NEXTAUTH_SECRET
+│
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx          # Globalny layout, provider dla NextAuth i Theme
+│   │   ├── page.tsx            # Landing page (publiczny)
+│   │   ├── login/page.tsx      # Ekran logowania ("Terminal init")
+│   │   │
+│   │   ├── (dashboard)/        # Chronione ścieżki kursanta
+│   │   │   ├── layout.tsx      # Sidebar nawigacyjny
+│   │   │   ├── missions/page.tsx               # Katalog kursów (Marketplace)
+│   │   │   ├── missions/[courseId]/page.tsx    # Quest Map (React Flow)
+│   │   │   ├── settings/page.tsx               # API Key Manager
+│   │   │   └── comms/page.tsx                  # Comms Log (WebSocket terminal)
+│   │   │
+│   │   ├── (admin)/            # Chronione ścieżki admina/twórcy
+│   │   │   ├── layout.tsx
+│   │   │   ├── courses/page.tsx                # Lista stworzonych kursów
+│   │   │   ├── courses/[courseId]/builder/page.tsx # Quest Builder (Node Editor)
+│   │   │   └── analytics/page.tsx              # Metryki
+│   │   │
+│   │   └── api/auth/[...nextauth]/route.ts     # Konfiguracja NextAuth.js
+│   │
+│   ├── components/
+│   │   ├── ui/                 # Reużywalne komponenty (np. shadcn/ui)
+│   │   ├── quest-map/          # Komponenty React Flow dla węzłów
+│   │   ├── terminal/           # Komponent wyświetlający logi jak konsola
+│   │   └── forms/              # Formularze (Quest Builder, itp.)
+│   │
+│   ├── lib/
+│   │   ├── api-client.ts       # Wrapper na fetch() do komunikacji z FastAPI
+│   │   ├── websocket.ts        # Klient WebSocket do Comms Loga
+│   │   └── utils.ts            # Funkcje pomocnicze (np. formatowanie dat)
+│   │
+│   └── types/
+│       └── index.ts            # Interfejsy TypeScript (Course, Quest, State)
+```
+
+### 📁 Backend (FastAPI + Python 3.11+)
+
+```text
+ndqs-backend/
+├── pyproject.toml              # Zależności (fastapi, sqlalchemy, alembic, openai, itp.)
+├── alembic.ini                 # Konfiguracja migracji bazy danych
+├── .env                        # DATABASE_URL, OPENAI_API_KEY, JUDGE0_URL
+│
+├── alembic/
+│   └── versions/               # Wygenerowane pliki migracji SQL
+│
+├── app/
+│   ├── main.py                 # Punkt wejścia (FastAPI app, CORS, routes inclusion)
+│   ├── config.py               # Walidacja zmiennych środowiskowych (Pydantic)
+│   ├── database.py             # Setup SQLAlchemy (async engine, session maker)
+│   ├── dependencies.py         # Depends(get_db), Depends(get_current_user)
+│   │
+│   ├── auth/
+│   │   ├── router.py           # POST /login, POST /api-key
+│   │   ├── schemas.py          # Pydantic models (UserCreate, Token)
+│   │   ├── service.py          # Logika JWT, hashowanie bcrypt
+│   │   └── models.py           # SQLAlchemy: User, APIKey
+│   │
+│   ├── courses/
+│   │   ├── router.py           # GET /courses, GET /courses/{id}/starter-pack
+│   │   ├── schemas.py
+│   │   ├── service.py          # Logika generowania Starter Packów (ZIP)
+│   │   └── models.py           # SQLAlchemy: Course, Enrollment
+│   │
+│   ├── quests/
+│   │   ├── router.py           # GET /quests/{id}, POST /quests/{id}/evaluate
+│   │   ├── schemas.py
+│   │   ├── service.py          # Maszyna stanów (FSM logic)
+│   │   └── models.py           # SQLAlchemy: Quest, QuestState, Submission
+│   │
+│   ├── evaluation/
+│   │   ├── orchestrator.py     # Łączy testy deterministyczne z LLM
+│   │   ├── sandbox.py          # Klient HTTP do Judge0 API
+│   │   ├── ast_checker.py      # Moduł ast do sprawdzania struktury kodu Python
+│   │   └── llm_service.py      # Integracja z OpenAI/Anthropic API
+│   │
+│   └── websocket/
+│       └── manager.py          # Zarządzanie aktywnymi połączeniami WS per user
+│
+└── docker-compose.yml          # Setup: Postgres, Redis, Judge0, Backend
+```
+
+### 📁 CLI Helper (Opcjonalnie - Node.js)
+
+```text
+ndqs-cli/
+├── package.json
+├── bin/
+│   └── ndqs.js                 # Punkt wejścia CLI (commander.js lub yargs)
+├── src/
+│   ├── commands/
+│   │   ├── init.js             # Tworzy .env z API_KEY
+│   │   ├── status.js           # GET /api/story/status
+│   │   ├── briefing.js         # GET /api/quests/{id}/briefing
+│   │   └── submit.js           # Pakuje pliki do ZIP i robi POST /evaluate
+│   └── api.js                  # Klient HTTP do komunikacji z FastAPI
+└── README.md
+```
+
+Mając taką strukturę, możesz przekazać ją do dowolnego narzędzia AI (np. Claude, Cursor, Manus) i zacząć iteracyjnie implementować poszczególne moduły, zaczynając od bazy danych i autoryzacji.
