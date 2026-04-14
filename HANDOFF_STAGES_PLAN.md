@@ -25,7 +25,7 @@
 - [x] S4: Hasła/tokeny — JWT access token TTL 15min, refresh 7d z rotation. API keys hashowane bcrypt (passlib). (Baseline #7)
 - [x] S5: Test security: próba dostępu do /api/auth/me bez tokena → 401. Próba z invalid API Key → 401. Próba z expired JWT → 401. (Baseline #1)
 - [x] S6: CSRF protection — CSRF token na POST endpoints (fastapi-csrf-protect lub custom middleware). SameSite=Lax cookies. (Baseline #6)
-- [ ] S7: CSP + security headers — Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin. Od Stage 1 (nie czekamy do Stage 6). (Baseline #6)
+- [x] S7: CSP + security headers — Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin. Od Stage 1 (nie czekamy do Stage 6). (Baseline #6)
 - [ ] S8: Rate limiting auth — max 10 login attempts per IP per 5min, max 3 API key generations per user per hour (slowapi + Redis). Test: 11 requests → 429. (Baseline #8)
 - [ ] S9: Error message hardening — custom exception handler: production → generic "Internal server error" (500), development → stack trace. Validation errors nie ujawniają DB schema. (PRD threat model)
 

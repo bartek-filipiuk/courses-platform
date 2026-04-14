@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from app.auth.router import router as auth_router
 from app.config import settings
 from app.logging import setup_logging
-from app.middleware import CorrelationIdMiddleware, OriginCheckMiddleware
+from app.middleware import CorrelationIdMiddleware, OriginCheckMiddleware, SecurityHeadersMiddleware
 
 # Initialize structured logging
 setup_logging()
@@ -24,6 +24,7 @@ app = FastAPI(
 
 # Middleware order: outermost first in add_middleware
 app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(OriginCheckMiddleware)
 app.add_middleware(
     CORSMiddleware,
