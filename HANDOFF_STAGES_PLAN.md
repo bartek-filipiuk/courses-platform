@@ -13,7 +13,7 @@
 - [x] T3: Docker Compose — backend + frontend + PostgreSQL + Redis. Healthchecks na PG (`pg_isready`) i Redis (`redis-cli ping`). `depends_on` z `condition: service_healthy`. Alembic migrations w backend entrypoint. (test → kod → verify)
 - [x] T4: Database setup — SQLAlchemy async engine (asyncpg), Alembic init z async env.py, pierwsza migracja: tabela `users` z kolumną `role` (enum: 'student', 'admin', default 'student') (test → kod → verify)
 - [x] T5: Auth backend — OAuth callback (GitHub), JWT creation (access 15min + refresh 7d), refresh token rotation (stary invalidated), `POST /api/auth/logout` (token blacklist w Redis, TTL = remaining JWT lifetime), middleware `get_current_user` (JWT lub API Key) (test → kod → verify)
-- [ ] T6: Auth frontend — NextAuth.js v5 config, GitHub provider, login page z przyciskiem "Zaloguj przez GitHub", animowany terminal onboarding (test → kod → verify)
+- [x] T6: Auth frontend — NextAuth.js v5 config, GitHub provider, login page z przyciskiem "Zaloguj przez GitHub", animowany terminal onboarding (test → kod → verify)
 - [ ] T7: API Key system — model `api_keys` (z optional `expires_at`), endpoint `POST /api/auth/api-key/generate`, `DELETE /api/auth/api-key/revoke`, `GET /api/auth/api-key/list` (zamaskowane klucze), `GET /api/auth/me` (auth via JWT lub API Key) (test → kod → verify)
 - [ ] T8: Frontend-backend integration — proxy Next.js → FastAPI, shared types, api-client.ts wrapper, OpenAPI Swagger UI na /docs (test → kod → verify)
 - [ ] T9: Structlog setup — JSON logging, correlation_id middleware (per request UUID w logach), log level config via env var (test → kod → verify)
