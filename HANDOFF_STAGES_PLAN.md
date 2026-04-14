@@ -8,7 +8,7 @@
 
 ### Taski:
 - [x] T0: `.env.example` — plik z komentarzami: DATABASE_URL, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, JWT_SECRET_KEY, JWT_REFRESH_SECRET, OPENROUTER_API_KEY, REDIS_URL. Komentarz przy każdej zmiennej. (test → kod → verify)
-- [ ] T1: Scaffold backend FastAPI — struktura katalogów (app/auth, app/courses, app/quests, app/evaluation), main.py z CORS, health endpoint `/api/health`, custom exception handler (generic 500 w prod, stack trace w dev) (test → kod → verify)
+- [x] T1: Scaffold backend FastAPI — struktura katalogów (app/auth, app/courses, app/quests, app/evaluation), main.py z CORS, health endpoint `/api/health`, custom exception handler (generic 500 w prod, stack trace w dev) (test → kod → verify)
 - [ ] T2: Scaffold frontend Next.js 15 — App Router, layout.tsx, Tailwind 4, shadcn/ui init, dark theme setup, Geist Sans + JetBrains Mono fonts, CSP headers w next.config (test → kod → verify)
 - [ ] T3: Docker Compose — backend + frontend + PostgreSQL + Redis. Healthchecks na PG (`pg_isready`) i Redis (`redis-cli ping`). `depends_on` z `condition: service_healthy`. Alembic migrations w backend entrypoint. (test → kod → verify)
 - [ ] T4: Database setup — SQLAlchemy async engine (asyncpg), Alembic init z async env.py, pierwsza migracja: tabela `users` z kolumną `role` (enum: 'student', 'admin', default 'student') (test → kod → verify)
