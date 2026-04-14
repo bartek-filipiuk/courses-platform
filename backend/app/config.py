@@ -1,4 +1,7 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+_MIN_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -17,6 +20,21 @@ class Settings(BaseSettings):
     BACKEND_URL: str = "http://localhost:8000"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> "Settings":
+        if self.ENVIRONMENT != "production":
+            return self
+        errors = []
+        for field in ("JWT_SECRET_KEY", "JWT_REFRESH_SECRET"):
+            value = getattr(self, field)
+            if value == "change-me-in-production":
+                errors.append(f"{field} must not use the default placeholder in production")
+            elif len(value) < _MIN_SECRET_LENGTH:
+                errors.append(f"{field} must be at least {_MIN_SECRET_LENGTH} characters")
+        if errors:
+            raise ValueError("; ".join(errors))
+        return self
 
 
 settings = Settings()
