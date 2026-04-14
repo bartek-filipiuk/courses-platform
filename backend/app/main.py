@@ -1,11 +1,20 @@
 import traceback
+import uuid
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.auth.router import router as auth_router
 from app.config import settings
+from app.logging import setup_logging
+from app.middleware import CorrelationIdMiddleware
+
+# Initialize structured logging
+setup_logging()
+
+logger = structlog.get_logger()
 
 app = FastAPI(
     title="NDQS Backend",
@@ -13,7 +22,8 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS — restrictive allowlist
+# Middleware order: outermost first in add_middleware
+app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL],
@@ -23,23 +33,25 @@ app.add_middleware(
 )
 
 
-@app.middleware("http")
-async def catch_exceptions_middleware(request: Request, call_next):  # noqa: ANN001
-    try:
-        return await call_next(request)
-    except Exception as exc:
-        if settings.ENVIRONMENT == "production":
-            return JSONResponse(
-                status_code=500,
-                content={"detail": "Internal server error"},
-            )
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    correlation_id = getattr(request.state, "correlation_id", str(uuid.uuid4()))
+    logger.error("unhandled_exception", error=str(exc), correlation_id=correlation_id)
+
+    if settings.ENVIRONMENT == "production":
         return JSONResponse(
             status_code=500,
-            content={
-                "detail": str(exc),
-                "traceback": traceback.format_exc(),
-            },
+            content={"detail": "Internal server error"},
+            headers={"X-Correlation-ID": correlation_id},
         )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": str(exc),
+            "traceback": traceback.format_exc(),
+        },
+        headers={"X-Correlation-ID": correlation_id},
+    )
 
 
 app.include_router(auth_router)

@@ -16,7 +16,7 @@
 - [x] T6: Auth frontend — NextAuth.js v5 config, GitHub provider, login page z przyciskiem "Zaloguj przez GitHub", animowany terminal onboarding (test → kod → verify)
 - [x] T7: API Key system — model `api_keys` (z optional `expires_at`), endpoint `POST /api/auth/api-key/generate`, `DELETE /api/auth/api-key/revoke`, `GET /api/auth/api-key/list` (zamaskowane klucze), `GET /api/auth/me` (auth via JWT lub API Key) (test → kod → verify)
 - [x] T8: Frontend-backend integration — proxy Next.js → FastAPI, shared types, api-client.ts wrapper, OpenAPI Swagger UI na /docs (test → kod → verify)
-- [ ] T9: Structlog setup — JSON logging, correlation_id middleware (per request UUID w logach), log level config via env var (test → kod → verify)
+- [x] T9: Structlog setup — JSON logging, correlation_id middleware (per request UUID w logach), log level config via env var (test → kod → verify)
 
 ### Security (MANDATORY):
 - [ ] S1: Input validation — Pydantic schemas na auth endpoints, rejekcja malformed requests (Baseline #2)

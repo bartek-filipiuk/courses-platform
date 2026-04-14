@@ -1,0 +1,41 @@
+"""Custom ASGI middleware for correlation ID tracking."""
+
+import uuid
+
+import structlog
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+
+class CorrelationIdMiddleware:
+    """Pure ASGI middleware that adds correlation ID to requests and responses."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        # Extract or generate correlation ID from request headers
+        headers = dict(scope.get("headers", []))
+        correlation_id = (
+            headers.get(b"x-correlation-id", b"").decode()
+            or str(uuid.uuid4())
+        )
+
+        # Bind to structlog context
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+
+        # Store in scope for access in exception handlers
+        scope["state"] = {**scope.get("state", {}), "correlation_id": correlation_id}
+
+        async def send_with_correlation_id(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.append((b"x-correlation-id", correlation_id.encode()))
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_with_correlation_id)
