@@ -1,10 +1,11 @@
 """Auth routes — OAuth login, refresh, logout, me, API keys."""
 
 from urllib.parse import urlencode
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from app.auth.api_keys import generate_api_key, list_user_keys, revoke_key
 from app.auth.dependencies import get_current_user_token
@@ -20,7 +21,15 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 class GenerateApiKeyRequest(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=255)
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str) -> str:
+        if not v.strip():
+            msg = "Name must not be blank"
+            raise ValueError(msg)
+        return v.strip()
 
 
 # --- OAuth ---
@@ -39,7 +48,7 @@ async def github_login() -> RedirectResponse:
 
 
 @router.get("/github/callback")
-async def github_callback(code: str) -> dict:
+async def github_callback(code: str = Query(..., min_length=1)) -> dict:
     # TODO: Exchange code for token, fetch user info, upsert user
     return {"message": "OAuth callback received", "code": code}
 
@@ -106,10 +115,10 @@ async def api_key_list(token_data: dict = Depends(get_current_user_token)) -> li
 
 @router.delete("/api-key/revoke/{key_id}")
 async def api_key_revoke(
-    key_id: str,
+    key_id: UUID,
     token_data: dict = Depends(get_current_user_token),
 ) -> dict:
-    success = revoke_key(key_id=key_id, user_id=token_data["sub"])
+    success = revoke_key(key_id=str(key_id), user_id=token_data["sub"])
     if not success:
         raise HTTPException(status_code=404, detail="API key not found")
     return {"message": "API key revoked"}

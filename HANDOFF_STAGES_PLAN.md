@@ -19,7 +19,7 @@
 - [x] T9: Structlog setup — JSON logging, correlation_id middleware (per request UUID w logach), log level config via env var (test → kod → verify)
 
 ### Security (MANDATORY):
-- [ ] S1: Input validation — Pydantic schemas na auth endpoints, rejekcja malformed requests (Baseline #2)
+- [x] S1: Input validation — Pydantic schemas na auth endpoints, rejekcja malformed requests (Baseline #2)
 - [ ] S2: Sekrety w .env — DATABASE_URL, GITHUB_CLIENT_SECRET, JWT_SECRET_KEY, OPENROUTER_API_KEY w `.env`, BaseSettings walidacja (Baseline #5)
 - [ ] S3: CORS restrykcyjny — allowlist: localhost:3000 (dev), domena produkcyjna. FastAPI CORSMiddleware. (Baseline #6)
 - [ ] S4: Hasła/tokeny — JWT access token TTL 15min, refresh 7d z rotation. API keys hashowane bcrypt (passlib). (Baseline #7)
