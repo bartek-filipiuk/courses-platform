@@ -23,7 +23,7 @@
 - [x] S2: Sekrety w .env — DATABASE_URL, GITHUB_CLIENT_SECRET, JWT_SECRET_KEY, OPENROUTER_API_KEY w `.env`, BaseSettings walidacja (Baseline #5)
 - [x] S3: CORS restrykcyjny — allowlist: localhost:3000 (dev), domena produkcyjna. FastAPI CORSMiddleware. (Baseline #6)
 - [x] S4: Hasła/tokeny — JWT access token TTL 15min, refresh 7d z rotation. API keys hashowane bcrypt (passlib). (Baseline #7)
-- [ ] S5: Test security: próba dostępu do /api/auth/me bez tokena → 401. Próba z invalid API Key → 401. Próba z expired JWT → 401. (Baseline #1)
+- [x] S5: Test security: próba dostępu do /api/auth/me bez tokena → 401. Próba z invalid API Key → 401. Próba z expired JWT → 401. (Baseline #1)
 - [ ] S6: CSRF protection — CSRF token na POST endpoints (fastapi-csrf-protect lub custom middleware). SameSite=Lax cookies. (Baseline #6)
 - [ ] S7: CSP + security headers — Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin. Od Stage 1 (nie czekamy do Stage 6). (Baseline #6)
 - [ ] S8: Rate limiting auth — max 10 login attempts per IP per 5min, max 3 API key generations per user per hour (slowapi + Redis). Test: 11 requests → 429. (Baseline #8)
