@@ -2,19 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+	Crosshair,
+	Map,
+	Trophy,
+	Radio,
+	BarChart3,
+	BookOpen,
+	Zap,
+	TrendingUp,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-const NAV_ITEMS = [
-	{ href: "/missions", label: "Missions", icon: "🎯" },
-	{ href: "/quest-map", label: "Quest Map", icon: "🗺️" },
-	{ href: "/inventory", label: "Inventory", icon: "🏆" },
-	{ href: "/comms", label: "Comms Log", icon: "📡" },
-	{ href: "/profile", label: "Profile", icon: "📊" },
+const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+	{ href: "/missions", label: "Missions", icon: Crosshair },
+	{ href: "/quest-map", label: "Quest Map", icon: Map },
+	{ href: "/inventory", label: "Inventory", icon: Trophy },
+	{ href: "/comms", label: "Comms Log", icon: Radio },
+	{ href: "/profile", label: "Profile", icon: BarChart3 },
 ];
 
-const ADMIN_ITEMS = [
-	{ href: "/admin/courses", label: "Courses", icon: "📝" },
-	{ href: "/admin/quests", label: "Quests", icon: "⚡" },
-	{ href: "/admin/analytics", label: "Analytics", icon: "📈" },
+const ADMIN_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+	{ href: "/admin/courses", label: "Courses", icon: BookOpen },
+	{ href: "/admin/quests", label: "Quests", icon: Zap },
+	{ href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
 ];
 
 export default function Sidebar() {
@@ -43,7 +54,7 @@ export default function Sidebar() {
 									: "text-[#A1A1AA] hover:text-white hover:bg-[#141416]"
 							}`}
 						>
-							<span>{item.icon}</span>
+							<item.icon className="w-4 h-4" />
 							{item.label}
 						</Link>
 					);
@@ -64,7 +75,7 @@ export default function Sidebar() {
 									: "text-[#A1A1AA] hover:text-white hover:bg-[#141416]"
 							}`}
 						>
-							<span>{item.icon}</span>
+							<item.icon className="w-4 h-4" />
 							{item.label}
 						</Link>
 					);

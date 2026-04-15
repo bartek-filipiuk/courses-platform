@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Gamepad2, Bot, Trophy, Monitor, Shield, BarChart3 } from "lucide-react";
 
 export default function LandingPage() {
 	return (
@@ -50,15 +51,15 @@ export default function LandingPage() {
 				</h2>
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 					{[
-						{ icon: "🎮", title: "Narrative Quests", desc: "Every lesson is a quest wrapped in a story. You're not studying — you're on a mission." },
-						{ icon: "🤖", title: "AI Game Master", desc: "An LLM evaluates your work, gives narrative feedback, and guides you with Socratic questions." },
-						{ icon: "🏆", title: "Artifacts & Progression", desc: "Complete quests to earn artifacts that unlock new missions. Build your inventory." },
-						{ icon: "💻", title: "Your Own IDE", desc: "Work in VS Code, Claude Code, Cursor — the platform integrates with your tools." },
-						{ icon: "🔒", title: "Real Security", desc: "Every quest has security checks. Your Game Master calls out vulnerabilities." },
-						{ icon: "📊", title: "Track Progress", desc: "Visual quest map, quality radar chart, streak counter. See your growth in real time." },
+						{ icon: Gamepad2, title: "Narrative Quests", desc: "Every lesson is a quest wrapped in a story. You're not studying — you're on a mission." },
+						{ icon: Bot, title: "AI Game Master", desc: "An LLM evaluates your work, gives narrative feedback, and guides you with Socratic questions." },
+						{ icon: Trophy, title: "Artifacts & Progression", desc: "Complete quests to earn artifacts that unlock new missions. Build your inventory." },
+						{ icon: Monitor, title: "Your Own IDE", desc: "Work in VS Code, Claude Code, Cursor — the platform integrates with your tools." },
+						{ icon: Shield, title: "Real Security", desc: "Every quest has security checks. Your Game Master calls out vulnerabilities." },
+						{ icon: BarChart3, title: "Track Progress", desc: "Visual quest map, quality radar chart, streak counter. See your growth in real time." },
 					].map((f) => (
-						<div key={f.title} className="rounded-2xl border border-[#2A2A2E] bg-[#141416]/50 p-6 hover:border-[#6366F1]/30 transition-colors">
-							<span className="text-3xl mb-4 block">{f.icon}</span>
+						<div key={f.title} className="rounded-2xl border border-[#2A2A2E] bg-[#141416]/50 p-6 hover:border-[#6366F1]/30 transition-all duration-200 cursor-pointer hover:translate-y-[-2px]">
+							<f.icon className="w-8 h-8 text-[#6366F1] mb-4" />
 							<h3 className="text-lg font-semibold mb-2">{f.title}</h3>
 							<p className="text-sm text-[#A1A1AA] leading-relaxed">{f.desc}</p>
 						</div>

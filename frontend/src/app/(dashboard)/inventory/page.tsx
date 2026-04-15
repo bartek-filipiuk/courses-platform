@@ -1,5 +1,6 @@
 "use client";
 
+import { Trophy } from "lucide-react";
 import { useAuthFetch } from "@/lib/use-api";
 
 interface Artifact {
@@ -43,11 +44,11 @@ export default function InventoryPage() {
 						{(artifacts || []).map((artifact) => (
 							<div
 								key={artifact.id}
-								className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-5 hover:border-[#F59E0B]/50 transition-colors"
+								className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-5 hover:border-[#F59E0B]/50 transition-all duration-200 cursor-pointer hover:translate-y-[-1px]"
 							>
 								<div className="flex items-start gap-3">
 									<div className="w-10 h-10 rounded-xl bg-[#F59E0B]/20 flex items-center justify-center shrink-0">
-										<span className="text-lg">🏆</span>
+										<Trophy className="w-5 h-5 text-[#F59E0B]" />
 									</div>
 									<div>
 										<h3 className="text-white font-semibold text-sm">{artifact.name}</h3>
