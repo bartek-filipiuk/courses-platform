@@ -5,6 +5,7 @@ import time
 import uuid
 
 import structlog
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.evaluation.deterministic import evaluate_deterministic
@@ -79,10 +80,24 @@ async def evaluate_submission(
         model_id=course_model_id,
     )
 
-    passed = llm_result.get("passed", False)
+    passed = llm_result.get("passed")
     narrative = llm_result.get("narrative_response", "")
     quality_scores = llm_result.get("quality_scores")
     matched_failure = llm_result.get("matched_failure")
+
+    # If LLM was unavailable (passed=None), revert to IN_PROGRESS and inform user
+    if passed is None:
+        quest_state.state = "IN_PROGRESS"  # Revert from EVALUATING
+        await db.commit()
+        return {
+            "passed": False,
+            "narrative_response": narrative or "Ewaluacja chwilowo niedostępna. Spróbuj ponownie za chwilę.",
+            "quality_scores": None,
+            "matched_failure": None,
+            "execution_time_ms": int((time.time() - start_time) * 1000),
+            "submission_id": None,
+            "evaluation_unavailable": True,
+        }
 
     return await _finalize(
         db, user_id, quest, quest_state, payload, passed, narrative,
@@ -124,6 +139,8 @@ async def _finalize(
     db.add(submission)
 
     # Update FSM
+    unlocked_quest_ids = []
+    artifact_name = None
     if passed:
         quest_state.state = "COMPLETED"
         from datetime import UTC, datetime
@@ -132,7 +149,16 @@ async def _finalize(
         # Mint artifact
         artifact = await mint_artifact(db, user_id, quest.id)
         if artifact:
-            await check_and_unlock_quests(db, user_id, course_id)
+            # Get artifact name for response
+            from app.quests.models import ArtifactDefinition
+            art_def = await db.execute(
+                select(ArtifactDefinition).where(ArtifactDefinition.quest_id == quest.id)
+            )
+            art = art_def.scalar_one_or_none()
+            if art:
+                artifact_name = art.name
+
+            unlocked_quest_ids = await check_and_unlock_quests(db, user_id, course_id)
     else:
         quest_state.state = "FAILED_ATTEMPT"
 
@@ -148,7 +174,7 @@ async def _finalize(
 
     await db.commit()
 
-    return {
+    result = {
         "passed": passed,
         "narrative_response": narrative,
         "quality_scores": quality_scores,
@@ -156,3 +182,8 @@ async def _finalize(
         "execution_time_ms": execution_time_ms,
         "submission_id": str(submission.id),
     }
+    if artifact_name:
+        result["artifact_earned"] = artifact_name
+    if unlocked_quest_ids:
+        result["quests_unlocked"] = len(unlocked_quest_ids)
+    return result

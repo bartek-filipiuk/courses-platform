@@ -16,7 +16,7 @@ MAX_RETRIES = 3
 TIMEOUT_SECONDS = 30
 
 FALLBACK_RESPONSE = {
-    "passed": False,
+    "passed": None,  # None = evaluation unavailable, don't change quest state
     "narrative_response": "Ewaluacja trwa dłużej niż zwykle. Spróbuj ponownie za chwilę.",
     "quality_scores": None,
     "matched_failure": None,

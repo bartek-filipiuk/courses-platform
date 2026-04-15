@@ -20,9 +20,8 @@ import { useSidebar } from "./SidebarProvider";
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
 	{ href: "/missions", label: "Missions", icon: Crosshair },
-	{ href: "/quest-map", label: "Quest Map", icon: Map },
+	{ href: "/my-courses", label: "My Courses", icon: BookOpen },
 	{ href: "/inventory", label: "Inventory", icon: Trophy },
-	{ href: "/comms", label: "Comms Log", icon: Radio },
 	{ href: "/profile", label: "Profile", icon: BarChart3 },
 ];
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api-client";
 import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
 import { Button } from "@/components/ui";
@@ -10,6 +10,7 @@ import type { CourseDetail } from "@/types";
 
 export default function CoursePage() {
 	const params = useParams();
+	const router = useRouter();
 	const courseId = params.courseId as string;
 	const { data: course, loading, error } = useAuthFetch<CourseDetail>(`/api/courses/${courseId}`);
 	const [enrolling, setEnrolling] = useState(false);
@@ -23,6 +24,8 @@ export default function CoursePage() {
 		try {
 			await mutate(`/api/courses/${courseId}/enroll`, { method: "POST" });
 			setEnrolled(true);
+			// Redirect to quest map after enrollment
+			setTimeout(() => router.push(`/quest-map?courseId=${courseId}`), 1500);
 		} catch (e) {
 			if (e instanceof ApiError && e.status === 409) {
 				setEnrolled(true);

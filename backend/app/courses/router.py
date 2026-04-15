@@ -139,6 +139,54 @@ async def enroll(
     return {"user_id": str(user_id), "course_id": str(course_id), "status": "enrolled"}
 
 
+# --- My Enrollments ---
+
+
+@router.get("/api/users/me/enrollments")
+async def list_my_enrollments(
+    token_data: dict = Depends(get_current_user_token),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """List courses the current user is enrolled in, with progress."""
+    user_id = uuid.UUID(token_data["sub"])
+
+    from app.quests.models import Quest, QuestState
+
+    result = await db.execute(
+        select(Enrollment, Course)
+        .join(Course, Enrollment.course_id == Course.id)
+        .where(Enrollment.user_id == user_id)
+        .order_by(Enrollment.enrolled_at.desc())
+    )
+    rows = result.all()
+
+    enrollments = []
+    for enrollment, course in rows:
+        # Get quest progress for this course
+        qs_result = await db.execute(
+            select(QuestState.state)
+            .join(Quest, QuestState.quest_id == Quest.id)
+            .where(QuestState.user_id == user_id, Quest.course_id == course.id)
+        )
+        states = [s for (s,) in qs_result.all()]
+        total = len(states)
+        completed = sum(1 for s in states if s == "COMPLETED")
+
+        enrollments.append({
+            "course_id": str(course.id),
+            "title": course.title,
+            "narrative_title": course.narrative_title,
+            "persona_name": course.persona_name,
+            "cover_image_url": course.cover_image_url,
+            "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+            "total_quests": total,
+            "completed_quests": completed,
+            "progress_pct": round(completed / total * 100, 1) if total > 0 else 0,
+        })
+
+    return enrollments
+
+
 # --- Starter Pack ---
 
 
