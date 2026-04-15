@@ -51,9 +51,9 @@
 - [x] T2: Backend CRUD kursów — `POST /api/admin/courses`, `PUT /api/admin/courses/{id}`, `GET /api/courses`, `GET /api/courses/{id}` z auth admin (test → kod → verify)
 - [x] T3: Enrollment endpoint — `POST /api/courses/{id}/enroll`, tworzenie wpisu w enrollments (test → kod → verify)
 - [x] T4: Starter Pack generator — `GET /api/courses/{id}/starter-pack`, generowanie ZIP w locie (CLAUDE.md z system promptem, .env.example, README.md) (test → kod → verify)
-- [ ] T5: Frontend: Katalog kursów — strona `/missions` z kartami kursów (Mission Briefs), filtrowanie, dark modern design, Framer Motion animations (test → kod → verify)
-- [ ] T6: Frontend: Strona kursu — `/missions/[courseId]` z opisem, przyciskiem "Przyjmij Misję" (enroll), "Pobierz Starter Pack" (test → kod → verify)
-- [ ] T7: Frontend: Admin CRUD — `/admin/courses` lista + formularz tworzenia/edycji kursu (test → kod → verify)
+- [x] T5: Frontend: Katalog kursów — strona `/missions` z kartami kursów (Mission Briefs), filtrowanie, dark modern design, Framer Motion animations (test → kod → verify)
+- [x] T6: Frontend: Strona kursu — `/missions/[courseId]` z opisem, przyciskiem "Przyjmij Misję" (enroll), "Pobierz Starter Pack" (test → kod → verify)
+- [x] T7: Frontend: Admin CRUD — `/admin/courses` lista + formularz tworzenia/edycji kursu (test → kod → verify)
 - [ ] T8: Rate limiter infrastructure — setup slowapi z Redis backend, dekorator `@rate_limit`, konfiguracja per-endpoint limitów via env/config (test → kod → verify)
 - [ ] T9: Seed script — `scripts/seed_dev.py`: demo admin user, 2 demo kursy (beginner/advanced), 5-6 demo questów per kurs, demo artefakty. Uruchamiany ręcznie lub via `docker compose exec backend python scripts/seed_dev.py` (test → kod → verify)
 

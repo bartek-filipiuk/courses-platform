@@ -30,3 +30,22 @@ export interface HealthResponse {
 	status: string;
 	service: string;
 }
+
+export interface Course {
+	id: string;
+	creator_id: string | null;
+	title: string;
+	narrative_title: string | null;
+	description: string | null;
+	persona_name: string | null;
+	cover_image_url: string | null;
+	model_id: string | null;
+	is_published: boolean;
+	created_at: string;
+}
+
+export interface CourseDetail extends Course {
+	global_context: string | null;
+	persona_prompt: string | null;
+	updated_at: string;
+}
