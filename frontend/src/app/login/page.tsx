@@ -4,10 +4,10 @@ import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
 	return (
-		<main className="flex min-h-screen flex-col items-center justify-center bg-background">
-			<div className="w-full max-w-md space-y-8 rounded-xl border border-border bg-surface p-8">
+		<main className="flex min-h-screen flex-col items-center justify-center bg-bg-base">
+			<div className="w-full max-w-md space-y-8 rounded-xl border border-border-default bg-bg-elevated p-8">
 				<div className="text-center">
-					<h1 className="font-mono text-2xl font-bold tracking-tight text-foreground">
+					<h1 className="font-mono text-2xl font-bold tracking-tight text-text-primary">
 						{">"} NDQS Terminal
 					</h1>
 					<p className="mt-2 text-sm text-text-secondary">
@@ -19,7 +19,7 @@ export default function LoginPage() {
 					<button
 						type="button"
 						onClick={() => signIn("github", { callbackUrl: "/" })}
-						className="flex w-full items-center justify-center gap-3 rounded-lg bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent-primary/10 hover:text-accent-primary border border-border"
+						className="flex w-full items-center justify-center gap-3 rounded-lg bg-bg-surface-active px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:bg-accent-primary/10 hover:text-accent-primary border border-border-default"
 					>
 						<svg
 							className="h-5 w-5"

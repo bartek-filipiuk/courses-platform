@@ -18,11 +18,11 @@ export default function ProfilePage() {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-[#0A0A0B] p-8">
-				<h1 className="text-3xl font-bold text-white mb-8">Profile</h1>
+			<div className="min-h-screen bg-bg-base p-8">
+				<h1 className="text-3xl font-bold text-text-primary mb-8">Profile</h1>
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 					{[1, 2, 3, 4].map((i) => (
-						<div key={i} className="h-24 rounded-2xl bg-[#141416] animate-pulse" />
+						<div key={i} className="h-24 rounded-2xl bg-bg-elevated animate-pulse" />
 					))}
 				</div>
 			</div>
@@ -43,32 +43,32 @@ export default function ProfilePage() {
 		: [];
 
 	return (
-		<div className="min-h-screen bg-[#0A0A0B] p-8">
+		<div className="min-h-screen bg-bg-base p-8">
 			<div className="max-w-5xl mx-auto">
-				<h1 className="text-3xl font-bold text-white mb-2">Profile</h1>
-				<p className="text-[#A1A1AA] mb-8">Your mission statistics.</p>
+				<h1 className="text-3xl font-bold text-text-primary mb-2">Profile</h1>
+				<p className="text-text-secondary mb-8">Your mission statistics.</p>
 
 				{/* Stat cards */}
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 					{statCards.map((card) => (
-						<div key={card.label} className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-5">
-							<p className="text-xs text-[#A1A1AA] uppercase tracking-wider mb-1">{card.label}</p>
-							<p className="text-3xl font-bold text-white">{card.value}</p>
-							<p className="text-xs text-[#A1A1AA] mt-1">{card.sub}</p>
+						<div key={card.label} className="rounded-2xl border border-border-default bg-bg-elevated p-5">
+							<p className="text-xs text-text-secondary uppercase tracking-wider mb-1">{card.label}</p>
+							<p className="text-3xl font-bold text-text-primary">{card.value}</p>
+							<p className="text-xs text-text-secondary mt-1">{card.sub}</p>
 						</div>
 					))}
 				</div>
 
 				{/* Progress bar */}
-				<div className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-5 mb-8">
-					<p className="text-sm text-[#A1A1AA] mb-3">Overall Progress</p>
-					<div className="h-3 bg-[#1C1C1F] rounded-full overflow-hidden">
+				<div className="rounded-2xl border border-border-default bg-bg-elevated p-5 mb-8">
+					<p className="text-sm text-text-secondary mb-3">Overall Progress</p>
+					<div className="h-3 bg-bg-surface-active rounded-full overflow-hidden">
 						<div
-							className="h-full bg-gradient-to-r from-[#6366F1] to-[#22C55E] rounded-full transition-all duration-700"
+							className="h-full bg-gradient-to-r from-accent-primary to-accent-success rounded-full transition-all duration-700"
 							style={{ width: `${stats.progress_pct}%` }}
 						/>
 					</div>
-					<div className="flex justify-between mt-2 text-xs text-[#A1A1AA]">
+					<div className="flex justify-between mt-2 text-xs text-text-secondary">
 						<span>{stats.completed} completed</span>
 						<span>{stats.in_progress} in progress</span>
 						<span>{stats.total_quests - stats.completed - stats.in_progress} remaining</span>
@@ -77,8 +77,8 @@ export default function ProfilePage() {
 
 				{/* Quality scores */}
 				{qualityDims.length > 0 && (
-					<div className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-5">
-						<p className="text-sm text-[#A1A1AA] mb-4">Quality Scores (avg)</p>
+					<div className="rounded-2xl border border-border-default bg-bg-elevated p-5">
+						<p className="text-sm text-text-secondary mb-4">Quality Scores (avg)</p>
 						<div className="grid grid-cols-4 gap-4">
 							{qualityDims.map(([dim, val]) => (
 								<div key={dim} className="text-center">
@@ -87,23 +87,23 @@ export default function ProfilePage() {
 											<path
 												d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
 												fill="none"
-												stroke="#1C1C1F"
+												style={{ stroke: 'var(--bg-surface-active)' }}
 												strokeWidth="3"
 											/>
 											<path
 												d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
 												fill="none"
-												stroke="#6366F1"
+												style={{ stroke: 'var(--accent-primary)' }}
 												strokeWidth="3"
 												strokeDasharray={`${val * 10}, 100`}
 												strokeLinecap="round"
 											/>
 										</svg>
-										<span className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+										<span className="absolute inset-0 flex items-center justify-center text-text-primary font-bold text-sm">
 											{val}
 										</span>
 									</div>
-									<p className="text-xs text-[#A1A1AA] capitalize">{dim}</p>
+									<p className="text-xs text-text-secondary capitalize">{dim}</p>
 								</div>
 							))}
 						</div>

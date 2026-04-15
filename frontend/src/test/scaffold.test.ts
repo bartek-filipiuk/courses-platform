@@ -32,20 +32,20 @@ describe("Frontend Scaffold", () => {
 			expect(layout).toContain("dark");
 		});
 
-		it("globals.css has NDQS dark background color #0A0A0B", () => {
+		it("globals.css has NDQS Cyber Gold base color #05050A", () => {
 			const css = fs.readFileSync(
 				path.join(ROOT, "src/app/globals.css"),
 				"utf-8",
 			);
-			expect(css.toLowerCase()).toContain("#0a0a0b");
+			expect(css.toLowerCase()).toContain("#05050a");
 		});
 
-		it("globals.css has NDQS surface color #141416", () => {
+		it("globals.css has NDQS accent-primary gold #E5B55C", () => {
 			const css = fs.readFileSync(
 				path.join(ROOT, "src/app/globals.css"),
 				"utf-8",
 			);
-			expect(css.toLowerCase()).toContain("#141416");
+			expect(css.toLowerCase()).toContain("#e5b55c");
 		});
 	});
 
@@ -58,12 +58,12 @@ describe("Frontend Scaffold", () => {
 			expect(layout).toContain("Geist");
 		});
 
-		it("layout.tsx imports JetBrains Mono font", () => {
+		it("layout.tsx imports Geist Mono font", () => {
 			const layout = fs.readFileSync(
 				path.join(ROOT, "src/app/layout.tsx"),
 				"utf-8",
 			);
-			expect(layout).toContain("JetBrains_Mono");
+			expect(layout).toContain("Geist_Mono");
 		});
 	});
 

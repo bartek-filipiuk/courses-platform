@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuthMutate } from "@/lib/use-api";
+import { Button, Input, Textarea } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 interface QuestForm {
 	course_id: string;
@@ -73,52 +75,87 @@ export default function AdminQuestsPage() {
 		}
 	};
 
-	const inputClass = "w-full rounded-xl border border-[#2A2A2E] bg-[#0A0A0B] px-4 py-3 text-white placeholder-[#A1A1AA]/50 focus:border-[#6366F1] focus:outline-none transition-colors";
-	const tabClass = (t: string) => `px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === t ? "bg-[#6366F1] text-white" : "text-[#A1A1AA] hover:text-white"}`;
-
 	return (
-		<div className="min-h-screen bg-[#0A0A0B] p-8">
+		<div className="min-h-screen bg-bg-base p-8">
 			<div className="max-w-3xl mx-auto">
-				<h1 className="text-3xl font-bold text-white mb-2">Create Quest</h1>
-				<p className="text-[#A1A1AA] mb-6">Add a new quest to a course.</p>
+				<h1 className="text-3xl font-bold text-text-primary mb-2">Create Quest</h1>
+				<p className="text-text-secondary mb-6">Add a new quest to a course.</p>
 
 				{message && (
-					<div className={`mb-6 p-4 rounded-xl border ${message.type === "success" ? "border-[#22C55E]/30 bg-[#22C55E]/10 text-[#22C55E]" : "border-red-500/30 bg-red-500/10 text-red-400"}`}>
+					<div className={cn(
+						"mb-6 p-4 rounded-xl border",
+						message.type === "success"
+							? "border-accent-success/30 bg-accent-success/10 text-accent-success"
+							: "border-accent-error/30 bg-accent-error/10 text-accent-error",
+					)}>
 						{message.text}
 					</div>
 				)}
 
 				{/* Tabs */}
 				<div className="flex gap-2 mb-6">
-					<button type="button" className={tabClass("story")} onClick={() => setTab("story")}>Story</button>
-					<button type="button" className={tabClass("tech")} onClick={() => setTab("tech")}>Technical</button>
-					<button type="button" className={tabClass("artifact")} onClick={() => setTab("artifact")}>Artifact</button>
+					<button
+						type="button"
+						className={cn(
+							"px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+							tab === "story"
+								? "bg-accent-primary text-text-on-accent"
+								: "text-text-secondary hover:text-text-primary",
+						)}
+						onClick={() => setTab("story")}
+					>
+						Story
+					</button>
+					<button
+						type="button"
+						className={cn(
+							"px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+							tab === "tech"
+								? "bg-accent-primary text-text-on-accent"
+								: "text-text-secondary hover:text-text-primary",
+						)}
+						onClick={() => setTab("tech")}
+					>
+						Technical
+					</button>
+					<button
+						type="button"
+						className={cn(
+							"px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+							tab === "artifact"
+								? "bg-accent-primary text-text-on-accent"
+								: "text-text-secondary hover:text-text-primary",
+						)}
+						onClick={() => setTab("artifact")}
+					>
+						Artifact
+					</button>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-5">
 					{tab === "story" && (
 						<>
 							<div>
-								<label htmlFor="course_id" className="block text-sm text-[#A1A1AA] mb-2">Course ID *</label>
-								<input id="course_id" required value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })} className={inputClass} placeholder="UUID of the course" />
+								<label htmlFor="course_id" className="block text-sm text-text-secondary mb-2">Course ID *</label>
+								<Input id="course_id" required value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })} placeholder="UUID of the course" />
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label htmlFor="title" className="block text-sm text-[#A1A1AA] mb-2">Quest Title *</label>
-									<input id="title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} placeholder="e.g. Dark Network" />
+									<label htmlFor="title" className="block text-sm text-text-secondary mb-2">Quest Title *</label>
+									<Input id="title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Dark Network" />
 								</div>
 								<div>
-									<label htmlFor="sort_order" className="block text-sm text-[#A1A1AA] mb-2">Order</label>
-									<input id="sort_order" type="number" min={0} value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} className={inputClass} />
+									<label htmlFor="sort_order" className="block text-sm text-text-secondary mb-2">Order</label>
+									<Input id="sort_order" type="number" min={0} value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
 								</div>
 							</div>
 							<div>
-								<label htmlFor="briefing" className="block text-sm text-[#A1A1AA] mb-2">Briefing (narrative) *</label>
-								<textarea id="briefing" required rows={6} value={form.briefing} onChange={(e) => setForm({ ...form, briefing: e.target.value })} className={`${inputClass} font-mono text-sm`} placeholder="Ghost — your mission..." />
+								<label htmlFor="briefing" className="block text-sm text-text-secondary mb-2">Briefing (narrative) *</label>
+								<Textarea id="briefing" required rows={6} value={form.briefing} onChange={(e) => setForm({ ...form, briefing: e.target.value })} className="font-mono text-sm" placeholder="Ghost — your mission..." />
 							</div>
 							<div>
-								<label htmlFor="success_response" className="block text-sm text-[#A1A1AA] mb-2">Success Response</label>
-								<textarea id="success_response" rows={3} value={form.success_response} onChange={(e) => setForm({ ...form, success_response: e.target.value })} className={`${inputClass} font-mono text-sm`} placeholder="Good work, Ghost..." />
+								<label htmlFor="success_response" className="block text-sm text-text-secondary mb-2">Success Response</label>
+								<Textarea id="success_response" rows={3} value={form.success_response} onChange={(e) => setForm({ ...form, success_response: e.target.value })} className="font-mono text-sm" placeholder="Good work, Ghost..." />
 							</div>
 						</>
 					)}
@@ -126,39 +163,50 @@ export default function AdminQuestsPage() {
 					{tab === "tech" && (
 						<>
 							<div>
-								<label htmlFor="evaluation_type" className="block text-sm text-[#A1A1AA] mb-2">Evaluation Type *</label>
-								<select id="evaluation_type" value={form.evaluation_type} onChange={(e) => setForm({ ...form, evaluation_type: e.target.value })} className={inputClass}>
+								<label htmlFor="evaluation_type" className="block text-sm text-text-secondary mb-2">Evaluation Type *</label>
+								<select
+									id="evaluation_type"
+									value={form.evaluation_type}
+									onChange={(e) => setForm({ ...form, evaluation_type: e.target.value })}
+									className="w-full rounded-xl border border-border-default bg-bg-base px-4 py-3 text-text-primary placeholder:text-text-muted focus:border-border-active focus:outline-none transition-colors"
+								>
 									{EVAL_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
 								</select>
 							</div>
 							<div>
-								<label htmlFor="skills" className="block text-sm text-[#A1A1AA] mb-2">Skills (comma-separated)</label>
-								<input id="skills" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} className={inputClass} placeholder="REST API, Docker, SQL" />
+								<label htmlFor="skills" className="block text-sm text-text-secondary mb-2">Skills (comma-separated)</label>
+								<Input id="skills" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} placeholder="REST API, Docker, SQL" />
 							</div>
 							<div>
-								<label htmlFor="max_hints" className="block text-sm text-[#A1A1AA] mb-2">Max Hints</label>
-								<input id="max_hints" type="number" min={0} max={10} value={form.max_hints} onChange={(e) => setForm({ ...form, max_hints: Number(e.target.value) })} className={inputClass} />
+								<label htmlFor="max_hints" className="block text-sm text-text-secondary mb-2">Max Hints</label>
+								<Input id="max_hints" type="number" min={0} max={10} value={form.max_hints} onChange={(e) => setForm({ ...form, max_hints: Number(e.target.value) })} />
 							</div>
 						</>
 					)}
 
 					{tab === "artifact" && (
 						<>
-							<p className="text-sm text-[#A1A1AA]">Completing this quest awards an artifact that can unlock other quests.</p>
+							<p className="text-sm text-text-secondary">Completing this quest awards an artifact that can unlock other quests.</p>
 							<div>
-								<label htmlFor="artifact_name" className="block text-sm text-[#A1A1AA] mb-2">Artifact Name</label>
-								<input id="artifact_name" value={form.artifact_name} onChange={(e) => setForm({ ...form, artifact_name: e.target.value })} className={inputClass} placeholder="e.g. BLUEPRINT-8K2F" />
+								<label htmlFor="artifact_name" className="block text-sm text-text-secondary mb-2">Artifact Name</label>
+								<Input id="artifact_name" value={form.artifact_name} onChange={(e) => setForm({ ...form, artifact_name: e.target.value })} placeholder="e.g. BLUEPRINT-8K2F" />
 							</div>
 							<div>
-								<label htmlFor="artifact_description" className="block text-sm text-[#A1A1AA] mb-2">Artifact Description</label>
-								<textarea id="artifact_description" rows={3} value={form.artifact_description} onChange={(e) => setForm({ ...form, artifact_description: e.target.value })} className={inputClass} placeholder="The blueprint of NEXUS network" />
+								<label htmlFor="artifact_description" className="block text-sm text-text-secondary mb-2">Artifact Description</label>
+								<Textarea id="artifact_description" rows={3} value={form.artifact_description} onChange={(e) => setForm({ ...form, artifact_description: e.target.value })} placeholder="The blueprint of NEXUS network" />
 							</div>
 						</>
 					)}
 
-					<button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-[#6366F1] text-white font-medium hover:bg-[#5558E6] active:scale-[0.99] transition-all disabled:opacity-50">
+					<Button
+						type="submit"
+						disabled={saving}
+						loading={saving}
+						size="lg"
+						className="w-full"
+					>
 						{saving ? "Creating..." : "Create Quest"}
-					</button>
+					</Button>
 				</form>
 			</div>
 		</div>

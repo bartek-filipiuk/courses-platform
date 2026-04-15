@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
 	ReactFlow,
@@ -30,7 +30,22 @@ const nodeTypes: NodeTypes = {
 	quest: QuestNode,
 };
 
+const DS_COLORS = {
+	success: '#10B981',
+	primary: '#E5B55C',
+	info: '#3B82F6',
+	muted: 'rgba(255,255,255,0.12)',
+};
+
 export default function QuestMapPage() {
+	return (
+		<Suspense fallback={<div className="min-h-screen bg-bg-base flex items-center justify-center"><div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" /></div>}>
+			<QuestMapContent />
+		</Suspense>
+	);
+}
+
+function QuestMapContent() {
 	const searchParams = useSearchParams();
 	const courseId = searchParams.get("courseId");
 	const { data: quests, loading } = useAuthFetch<QuestItem[]>(
@@ -61,7 +76,7 @@ export default function QuestMapPage() {
 				source: questList[i - 1].id,
 				target: questList[i].id,
 				animated: questList[i].state === "AVAILABLE",
-				style: { stroke: "#6366F1", strokeWidth: 2 },
+				style: { stroke: "var(--accent-primary)", strokeWidth: 2 },
 			});
 		}
 
@@ -75,22 +90,22 @@ export default function QuestMapPage() {
 
 	if (!courseId) {
 		return (
-			<div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center">
-				<p className="text-[#A1A1AA]">Select a course to view quest map.</p>
+			<div className="min-h-screen bg-bg-base flex items-center justify-center">
+				<p className="text-text-secondary">Select a course to view quest map.</p>
 			</div>
 		);
 	}
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center">
-				<div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
+			<div className="min-h-screen bg-bg-base flex items-center justify-center">
+				<div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
 			</div>
 		);
 	}
 
 	return (
-		<div className="h-screen bg-[#0A0A0B] flex">
+		<div className="h-screen bg-bg-base flex">
 			{/* Map */}
 			<div className="flex-1">
 				<ReactFlow
@@ -99,18 +114,18 @@ export default function QuestMapPage() {
 					nodeTypes={nodeTypes}
 					onNodeClick={onNodeClick}
 					fitView
-					className="bg-[#0A0A0B]"
+					className="bg-bg-base"
 				>
-					<Background color="#2A2A2E" gap={20} />
-					<Controls className="!bg-[#141416] !border-[#2A2A2E] !rounded-xl" />
+					<Background color="rgba(255,255,255,0.12)" gap={20} />
+					<Controls className="!bg-bg-elevated !border-border-default !rounded-xl" />
 					<MiniMap
-						className="!bg-[#141416] !border-[#2A2A2E] !rounded-xl"
+						className="!bg-bg-elevated !border-border-default !rounded-xl"
 						nodeColor={(n) => {
 							const state = (n.data as Record<string, unknown>)?.state as string;
-							if (state === "COMPLETED") return "#22C55E";
-							if (state === "AVAILABLE") return "#6366F1";
-							if (state === "IN_PROGRESS") return "#3B82F6";
-							return "#2A2A2E";
+							if (state === "COMPLETED") return DS_COLORS.success;
+							if (state === "AVAILABLE") return DS_COLORS.primary;
+							if (state === "IN_PROGRESS") return DS_COLORS.info;
+							return DS_COLORS.muted;
 						}}
 					/>
 				</ReactFlow>
@@ -118,13 +133,13 @@ export default function QuestMapPage() {
 
 			{/* Quest Detail Panel (slide-in) */}
 			{selectedQuest && (
-				<div className="w-96 border-l border-[#2A2A2E] bg-[#141416] p-6 overflow-y-auto">
+				<div className="w-96 border-l border-border-default bg-bg-elevated p-6 overflow-y-auto">
 					<div className="flex justify-between items-start mb-4">
-						<h2 className="text-xl font-bold text-white">{selectedQuest.title}</h2>
+						<h2 className="text-xl font-bold text-text-primary">{selectedQuest.title}</h2>
 						<button
 							type="button"
 							onClick={() => setSelectedQuest(null)}
-							className="text-[#A1A1AA] hover:text-white"
+							className="text-text-secondary hover:text-text-primary"
 						>
 							&times;
 						</button>
@@ -132,21 +147,21 @@ export default function QuestMapPage() {
 
 					<div className="space-y-4">
 						<div>
-							<span className="text-xs text-[#A1A1AA] uppercase">Status</span>
-							<p className="text-sm text-white font-mono">{selectedQuest.state}</p>
+							<span className="text-xs text-text-secondary uppercase">Status</span>
+							<p className="text-sm text-text-primary font-mono">{selectedQuest.state}</p>
 						</div>
 
 						<div>
-							<span className="text-xs text-[#A1A1AA] uppercase">Type</span>
-							<p className="text-sm text-white font-mono">{selectedQuest.evaluation_type}</p>
+							<span className="text-xs text-text-secondary uppercase">Type</span>
+							<p className="text-sm text-text-primary font-mono">{selectedQuest.evaluation_type}</p>
 						</div>
 
 						{selectedQuest.skills.length > 0 && (
 							<div>
-								<span className="text-xs text-[#A1A1AA] uppercase">Skills</span>
+								<span className="text-xs text-text-secondary uppercase">Skills</span>
 								<div className="flex flex-wrap gap-1 mt-1">
 									{selectedQuest.skills.map((s) => (
-										<span key={s} className="px-2 py-0.5 text-xs bg-[#6366F1]/20 text-[#6366F1] rounded-full">
+										<span key={s} className="px-2 py-0.5 text-xs bg-accent-primary/20 text-accent-primary rounded-full">
 											{s}
 										</span>
 									))}
@@ -157,7 +172,7 @@ export default function QuestMapPage() {
 						{selectedQuest.state !== "LOCKED" && (
 							<a
 								href={`/quest/${selectedQuest.id}`}
-								className="block w-full text-center py-2 rounded-xl bg-[#6366F1] text-white font-medium hover:bg-[#5558E6] transition-all"
+								className="block w-full text-center py-2 rounded-xl bg-accent-primary text-text-on-accent font-medium hover:bg-accent-primary-hover transition-all"
 							>
 								{selectedQuest.state === "COMPLETED" ? "View Debrief" : "Open Quest"}
 							</a>

@@ -1,0 +1,690 @@
+# NDQS Design System: Kompletna Specyfikacja Wizualna i UI/UX
+
+**Przewodnik Implementacyjny dla Frontend Developera**
+**Stack: Next.js 14+ (App Router) / Tailwind CSS v4 / Framer Motion / shadcn/ui**
+
+---
+
+Celem tego dokumentu jest zdefiniowanie unikalnego, nowoczesnego i "nie-szablonowego" wyglądu platformy NDQS (Narrative-Driven Quest Sandbox). Odrzucamy standardowy, nudny "AI dark mode" z jaskrawą zielenią rodem z Matrixa. Celujemy w estetykę **Premium Tech / Dark Glassmorphism**, inspirowaną platformami takimi jak Linear, Vercel czy Raycast, ale z unikalnym, fabularnym sznytem.
+
+> Platforma ma wyglądać jak luksusowe **Centrum Dowodzenia Operacji**, a nie jak kolejna aplikacja zrobiona z gotowego szablonu. Każdy ekran powinien sprawiać wrażenie, że kursant siedzi w centrum dowodzenia hakera, który właśnie planuje operację.
+
+---
+
+## 1. Filozofia Designu (The "Wow" Factor)
+
+Aby osiągnąć efekt "Wow" i unikalność, opieramy design na trzech filarach, które razem tworzą spójne, immersyjne doświadczenie.
+
+Pierwszy filar to **Dark Glassmorphism**, czyli głębia zamiast płaskości. Zamiast płaskich czarnych divów, używamy półprzezroczystych kart (glass) nałożonych na bardzo subtelne, wolno poruszające się gradienty w tle (tzw. Aurora Background). To tworzy wrażenie trójwymiarowości i luksusu. Kluczowe jest to, że "szkło" potrzebuje czegoś pod sobą do rozmycia -- dlatego tło nigdy nie jest statycznym solidnym kolorem [1].
+
+Drugi filar to **ciepłe akcenty na zimnym tle**. Odchodzimy od sztampowego "Hacker Green" (#00FF00). Głównym kolorem tła jest bardzo głęboki, chłodny granat/grafit (prawie czarny), a kolorem akcentującym (CTA, progres, sukces) jest **Ciemne Złoto / Bursztyn (Dark Gold / Amber)**. To połączenie krzyczy "Premium" i jest znacznie przyjemniejsze dla oka przy długim użytkowaniu niż jaskrawe neony [2].
+
+Trzeci filar to **mikro-interakcje i Motion**. Nic nie jest statyczne. Każdy hover, każde kliknięcie, każde pojawienie się nowej wiadomości od Game Mastera ma swoją krzywą animacji (spring animation). Używamy Framer Motion do tworzenia płynnych przejść, które dają wrażenie fizyczności interfejsu [3].
+
+---
+
+## 2. Paleta Kolorów (Design Tokens)
+
+Nie używamy standardowej czerni `#000000` (zbyt ostra dla oka) ani czystej bieli `#FFFFFF` (zbyt duży kontrast). Poniższe wartości stanowią kompletny system kolorów platformy.
+
+### 2.1. Tła (Backgrounds)
+
+Tła muszą być niezwykle głębokie, aby efekt glassmorphism mógł na nich pracować. Różnica między `bg-base` a `bg-surface` jest subtelna, ale kluczowa dla percepcji głębi.
+
+| Token | Wartość | Zastosowanie |
+|---|---|---|
+| `bg-base` | `#05050A` | Główne tło aplikacji (Deep Space Black) |
+| `bg-sidebar` | `#08080F` | Tło sidebara (odrobinę jaśniejsze niż base) |
+| `bg-surface` | `rgba(255, 255, 255, 0.03)` | Tło kart i paneli (Glass Base) |
+| `bg-surface-hover` | `rgba(255, 255, 255, 0.06)` | Tło kart po najechaniu myszką |
+| `bg-surface-active` | `rgba(255, 255, 255, 0.09)` | Tło aktywnego elementu (np. wybrany quest) |
+| `bg-elevated` | `rgba(20, 20, 25, 0.85)` | Modale, dropdowny, tooltips (mocniejszy solid + blur) |
+| `bg-input` | `rgba(255, 255, 255, 0.05)` | Tło pól input, textarea |
+| `bg-code` | `rgba(0, 0, 0, 0.4)` | Tło bloków kodu w Comms Log |
+
+### 2.2. Akcenty (Accents) -- Motyw "Cyber Gold"
+
+To jest to, co nas wyróżnia. Zamiast zieleni, używamy złota i bursztynu, które na ciemnym tle wyglądają niezwykle elegancko i nowocześnie. Deep Purple służy jako drugi biegun kolorystyczny, widoczny głównie w ambientowych gradientach tła.
+
+| Token | Wartość HEX | Zastosowanie |
+|---|---|---|
+| `accent-primary` | `#E5B55C` | Główne CTA, aktywne węzły na mapie, postęp (Dark Gold) |
+| `accent-primary-hover` | `#F3C570` | Hover state przycisków CTA |
+| `accent-glow` | `rgba(229, 181, 92, 0.3)` | Box-shadow / glow dla aktywnych elementów |
+| `accent-secondary` | `#7C3AED` | Gradienty tła, drugorzędne akcenty (Deep Purple) |
+| `accent-secondary-glow` | `rgba(124, 58, 237, 0.2)` | Glow dla elementów purple |
+| `accent-success` | `#10B981` | Zaliczone testy, ukończone questy (Emerald) |
+| `accent-warning` | `#F59E0B` | Ostrzeżenia, questy wymagające uwagi (Amber) |
+| `accent-error` | `#EF4444` | Oblał test, błąd krytyczny (Rose Red) |
+| `accent-info` | `#3B82F6` | Informacje systemowe, linki (Blue) |
+
+### 2.3. Tekst (Typography Colors)
+
+| Token | Wartość HEX | Zastosowanie |
+|---|---|---|
+| `text-primary` | `#F8FAFC` | Nagłówki, ważny tekst (Off-white, nie pure white!) |
+| `text-secondary` | `#94A3B8` | Opisy, paragrafy, logi (Slate 400) |
+| `text-muted` | `#475569` | Tekst pomocniczy, wyszarzone questy (Slate 600) |
+| `text-accent` | `#E5B55C` | Tekst akcentowy (Gold) -- używać oszczędnie |
+| `text-on-accent` | `#05050A` | Tekst na złotych przyciskach (ciemny) |
+
+### 2.4. Krawędzie (Borders)
+
+| Token | Wartość | Zastosowanie |
+|---|---|---|
+| `border-subtle` | `rgba(255, 255, 255, 0.08)` | Krawędzie kart, paneli, dividerów |
+| `border-default` | `rgba(255, 255, 255, 0.12)` | Krawędzie inputów, wyraźniejsze separatory |
+| `border-active` | `rgba(229, 181, 92, 0.5)` | Focus state, aktywny quest |
+| `border-error` | `rgba(239, 68, 68, 0.5)` | Błędy walidacji |
+
+---
+
+## 3. Typografia (Font Pairing)
+
+Aby uciec od standardowego wyglądu, używamy nowoczesnego parowania fontów, które łączy elegancję SaaS z technicznym charakterem platformy dla programistów [4].
+
+### 3.1. Fonty
+
+| Rola | Font | Fallback | Zastosowanie |
+|---|---|---|---|
+| **UI / Sans-serif** | Geist Sans | Inter, system-ui | Nawigacja, przyciski, tytuły questów, opisy |
+| **Kod / Monospace** | Geist Mono | JetBrains Mono, monospace | Comms Log, kod, API Keys, logi, terminal |
+
+Geist (stworzony przez Vercel) to absolutny top jeśli chodzi o nowoczesny, czysty i techniczny wygląd. Jest czytelny w małych rozmiarach i piękny w dużych nagłówkach. Geist Mono zapewnia spójność wizualną z wersją sans-serif.
+
+### 3.2. Skala Typograficzna
+
+| Nazwa | Rozmiar | Waga | Line-height | Zastosowanie |
+|---|---|---|---|---|
+| `display` | 48px / `text-5xl` | 700 (Bold) | 1.1 | Hero na landing page, tytuł kursu |
+| `h1` | 32px / `text-3xl` | 600 (Semibold) | 1.2 | Tytuł questa, nagłówek sekcji |
+| `h2` | 24px / `text-2xl` | 600 (Semibold) | 1.3 | Podtytuły, nazwy paneli |
+| `h3` | 18px / `text-lg` | 500 (Medium) | 1.4 | Nagłówki kart, etykiety sekcji |
+| `body` | 15px / `text-[15px]` | 400 (Regular) | 1.6 | Paragrafy, opisy questów |
+| `small` | 13px / `text-sm` | 400 (Regular) | 1.5 | Metadane, timestamps, secondary info |
+| `label` | 11px / `text-xs` | 600 (Semibold) | 1.0 | Etykiety statusów, tagi, tracking-wider |
+| `mono` | 14px / `text-sm` | 400 (Regular) | 1.7 | Comms Log, bloki kodu, terminal |
+
+### 3.3. Zasady Typografii
+
+Etykiety statusów (np. "STATUS: ACTIVE", "QUEST 03", "CLASSIFIED") powinny mieć zwiększony `letter-spacing` (`tracking-wider` lub `tracking-widest` w Tailwind) i być pisane WIELKIMI LITERAMI (`uppercase`). To daje militarno-techniczny charakter bez przesady. Długie opisy i paragrafy powinny mieć wagę `300` (Light) lub `400` (Regular) z dużym `line-height` (1.6-1.7) dla czytelności na ciemnym tle.
+
+---
+
+## 4. Tailwind Config (tailwind.config.ts)
+
+Poniżej gotowa konfiguracja do wklejenia. Rozszerza domyślny Tailwind o nasze custom tokeny.
+
+```typescript
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  theme: {
+    extend: {
+      colors: {
+        // Backgrounds
+        "ndqs-base": "#05050A",
+        "ndqs-sidebar": "#08080F",
+        // Accents
+        "ndqs-gold": "#E5B55C",
+        "ndqs-gold-hover": "#F3C570",
+        "ndqs-purple": "#7C3AED",
+        "ndqs-success": "#10B981",
+        "ndqs-warning": "#F59E0B",
+        "ndqs-error": "#EF4444",
+        "ndqs-info": "#3B82F6",
+        // Text
+        "ndqs-text": "#F8FAFC",
+        "ndqs-text-secondary": "#94A3B8",
+        "ndqs-text-muted": "#475569",
+      },
+      fontFamily: {
+        sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "JetBrains Mono", "monospace"],
+      },
+      borderRadius: {
+        "glass": "16px",   // Zaokrąglenie kart glass
+        "glass-sm": "12px", // Mniejsze elementy glass
+      },
+      boxShadow: {
+        "glass": "0 8px 32px 0 rgba(0, 0, 0, 0.36)",
+        "glow-gold": "0 0 20px rgba(229, 181, 92, 0.3)",
+        "glow-gold-strong": "0 0 30px rgba(229, 181, 92, 0.5)",
+        "glow-purple": "0 0 20px rgba(124, 58, 237, 0.2)",
+      },
+      backdropBlur: {
+        "glass": "20px",
+      },
+      animation: {
+        "aurora": "aurora 20s ease-in-out infinite alternate",
+        "border-pulse": "border-pulse 2s ease-in-out infinite",
+        "fade-in": "fade-in 0.5s ease-out",
+        "slide-up": "slide-up 0.5s ease-out",
+        "typewriter": "typewriter 0.05s steps(1) infinite",
+      },
+      keyframes: {
+        aurora: {
+          "0%": { transform: "translate(0%, 0%) rotate(0deg)" },
+          "50%": { transform: "translate(2%, -2%) rotate(1deg)" },
+          "100%": { transform: "translate(-1%, 1%) rotate(-1deg)" },
+        },
+        "border-pulse": {
+          "0%": { boxShadow: "0 0 0 0 rgba(229, 181, 92, 0.4)" },
+          "70%": { boxShadow: "0 0 0 10px rgba(229, 181, 92, 0)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(229, 181, 92, 0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "slide-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+};
+
+export default config;
+```
+
+---
+
+## 5. Komponenty UI i Efekty
+
+Poniżej znajdują się gotowe przepisy (Tailwind CSS classes) na najważniejsze elementy interfejsu. Każdy komponent powinien być zbudowany jako reusable React component.
+
+### 5.1. Glass Card (Podstawowy budulec)
+
+Każdy panel, karta w Marketplace, Quest Detail -- wszystko jest "szklane". Nie używamy solidnych kolorów tła.
+
+```html
+<!-- Glass Card Base -->
+<div class="
+  relative overflow-hidden
+  rounded-[16px]
+  bg-white/[0.03]
+  backdrop-blur-[20px]
+  border border-white/[0.08]
+  shadow-glass
+  transition-all duration-300 ease-out
+  hover:bg-white/[0.06]
+  hover:border-white/[0.15]
+  p-6
+">
+  <!-- Content -->
+</div>
+```
+
+Warianty Glass Card:
+
+| Wariant | Modyfikacja | Zastosowanie |
+|---|---|---|
+| **Default** | Jak wyżej | Karty questów, panele informacyjne |
+| **Active** | `border-ndqs-gold/50 shadow-glow-gold` | Aktywny quest, wybrany element |
+| **Success** | `border-ndqs-success/30` + zielona ikona | Ukończony quest |
+| **Locked** | `opacity-50 pointer-events-none` | Zablokowany quest |
+| **Elevated** | `bg-[rgba(20,20,25,0.85)] backdrop-blur-[30px]` | Modale, popovery |
+
+### 5.2. Tło Aurora (Ambient Background)
+
+Aby szkło wyglądało dobrze, tło pod nim nie może być jednorodne. Używamy komponentu "Aurora Background" inspirowanego Aceternity UI [5]. Są to powoli poruszające się, rozmyte plamy koloru (Purple + Gold), które przemieszczają się pod interfejsem. Ten komponent jest umieszczony jako `fixed` warstwa pod całą aplikacją.
+
+```tsx
+// components/AuroraBackground.tsx
+export function AuroraBackground() {
+  return (
+    <div className="fixed inset-0 -z-10 overflow-hidden bg-ndqs-base">
+      {/* Gradient Orb 1: Purple (lewy górny) */}
+      <div className="absolute -top-[40%] -left-[20%] w-[60%] h-[60%] 
+        rounded-full bg-ndqs-purple/[0.15] blur-[120px] animate-aurora" />
+      
+      {/* Gradient Orb 2: Gold (prawy dolny) */}
+      <div className="absolute -bottom-[30%] -right-[15%] w-[50%] h-[50%] 
+        rounded-full bg-ndqs-gold/[0.08] blur-[100px] animate-aurora 
+        [animation-delay:10s] [animation-direction:alternate-reverse]" />
+      
+      {/* Gradient Orb 3: Subtle blue (środek) */}
+      <div className="absolute top-[30%] left-[40%] w-[30%] h-[30%] 
+        rounded-full bg-ndqs-info/[0.05] blur-[80px] animate-aurora 
+        [animation-delay:5s]" />
+      
+      {/* Noise texture overlay (opcjonalnie) */}
+      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03]" />
+    </div>
+  );
+}
+```
+
+### 5.3. Przyciski
+
+System przycisków składa się z trzech wariantów. Główny przycisk CTA (Gold) ma efekt poświaty (glow), który intensyfikuje się na hover.
+
+```html
+<!-- Primary CTA (Gold Glow) -->
+<button class="
+  relative group px-6 py-3 rounded-lg
+  font-medium text-ndqs-base bg-ndqs-gold
+  transition-all duration-300
+  hover:bg-ndqs-gold-hover hover:shadow-glow-gold-strong
+  active:scale-[0.98]
+">
+  <div class="absolute -inset-1 bg-ndqs-gold rounded-lg blur-md 
+    opacity-30 group-hover:opacity-60 transition duration-300" />
+  <span class="relative">Rozpocznij Operację</span>
+</button>
+
+<!-- Secondary (Ghost/Outline) -->
+<button class="
+  px-6 py-3 rounded-lg font-medium
+  text-ndqs-text border border-white/[0.12]
+  bg-white/[0.03] backdrop-blur-sm
+  transition-all duration-300
+  hover:bg-white/[0.08] hover:border-white/[0.2]
+  active:scale-[0.98]
+">
+  Dokumentacja
+</button>
+
+<!-- Danger -->
+<button class="
+  px-6 py-3 rounded-lg font-medium
+  text-ndqs-error border border-ndqs-error/30
+  bg-ndqs-error/[0.08]
+  transition-all duration-300
+  hover:bg-ndqs-error/[0.15] hover:border-ndqs-error/50
+">
+  Przerwij Misję
+</button>
+```
+
+### 5.4. Pasek Postępu (Segmented Progress Bar)
+
+Zamiast zwykłego ciągłego paska, robimy "Level Progression Bar" w stylu gier sci-fi. Składa się z segmentów, z których każdy reprezentuje jeden quest. Aktywny segment pulsuje.
+
+```html
+<!-- Segmented Progress Bar (6 questów, 2 ukończone, 1 w trakcie) -->
+<div class="flex items-center gap-1.5">
+  <!-- Ukończony -->
+  <div class="h-2 flex-1 rounded-sm bg-ndqs-gold shadow-[0_0_8px_rgba(229,181,92,0.5)]" />
+  <div class="h-2 flex-1 rounded-sm bg-ndqs-gold shadow-[0_0_8px_rgba(229,181,92,0.5)]" />
+  <!-- W trakcie (pulsuje) -->
+  <div class="h-2 flex-1 rounded-sm bg-ndqs-gold/60 animate-pulse" />
+  <!-- Zablokowane -->
+  <div class="h-2 flex-1 rounded-sm bg-white/[0.08]" />
+  <div class="h-2 flex-1 rounded-sm bg-white/[0.08]" />
+  <div class="h-2 flex-1 rounded-sm bg-white/[0.08]" />
+</div>
+```
+
+### 5.5. Status Badge (Tagi statusów)
+
+Tagi statusów questów powinny mieć militarno-techniczny charakter z uppercase i tracking-wider.
+
+```html
+<!-- Status Badges -->
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md 
+  text-xs font-semibold uppercase tracking-wider
+  bg-ndqs-gold/[0.12] text-ndqs-gold border border-ndqs-gold/20">
+  <span class="w-1.5 h-1.5 rounded-full bg-ndqs-gold animate-pulse" />
+  In Progress
+</span>
+
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md 
+  text-xs font-semibold uppercase tracking-wider
+  bg-ndqs-success/[0.12] text-ndqs-success border border-ndqs-success/20">
+  <span class="w-1.5 h-1.5 rounded-full bg-ndqs-success" />
+  Completed
+</span>
+
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md 
+  text-xs font-semibold uppercase tracking-wider
+  bg-white/[0.05] text-ndqs-text-muted border border-white/[0.06]">
+  <span class="w-1.5 h-1.5 rounded-full bg-ndqs-text-muted" />
+  Locked
+</span>
+```
+
+### 5.6. Input Fields
+
+Pola formularzy powinny być subtelne, ale wyraźnie zaznaczone na focus (złota krawędź).
+
+```html
+<input class="
+  w-full px-4 py-3 rounded-glass-sm
+  bg-white/[0.05] border border-white/[0.1]
+  text-ndqs-text placeholder:text-ndqs-text-muted
+  font-mono text-sm
+  transition-all duration-200
+  focus:outline-none focus:border-ndqs-gold/50 focus:shadow-glow-gold
+  focus:bg-white/[0.08]
+" placeholder="Wpisz API Key..." />
+```
+
+---
+
+## 6. Specyfikacja Ekranów (Screen-by-Screen)
+
+Poniżej opisuję wygląd i zachowanie każdego kluczowego ekranu platformy.
+
+### 6.1. Layout Główny (App Shell)
+
+Cała aplikacja (po zalogowaniu) używa layoutu z **collapsible sidebar** po lewej stronie i **main content area** po prawej. Sidebar jest oddzielony od contentu subtelną linią `border-r border-white/[0.06]`.
+
+```
+┌─────────────────────────────────────────────────────┐
+│  ┌──────────┐  ┌─────────────────────────────────┐  │
+│  │           │  │                                 │  │
+│  │  SIDEBAR  │  │         MAIN CONTENT            │  │
+│  │  (240px)  │  │         (flex-1)                │  │
+│  │           │  │                                 │  │
+│  │  Logo     │  │  ┌─────────────────────────┐    │  │
+│  │  Nav      │  │  │   Top Bar (breadcrumb)  │    │  │
+│  │  Course   │  │  ├─────────────────────────┤    │  │
+│  │  Selector │  │  │                         │    │  │
+│  │           │  │  │   Page Content           │    │  │
+│  │  Quests   │  │  │   (Glass Cards)          │    │  │
+│  │  Progress │  │  │                         │    │  │
+│  │           │  │  └─────────────────────────┘    │  │
+│  │  User     │  │                                 │  │
+│  └──────────┘  └─────────────────────────────────┘  │
+│  [Aurora Background - fixed, z-index: -1]           │
+└─────────────────────────────────────────────────────┘
+```
+
+**Sidebar** ma tło `bg-ndqs-sidebar` (nieco jaśniejsze niż base) z prawą krawędzią `border-r border-white/[0.06]`. Na samej górze znajduje się logo platformy (np. "NDQS" w foncie mono z akcentem gold). Pod spodem: selektor kursu (dropdown), lista questów z ich statusami, pasek postępu kursu, a na dole avatar i nazwa użytkownika.
+
+**Top Bar** to cienki pasek na górze main content z breadcrumbem (np. "Operacja Skynet > Quest 03: Infiltracja") i ewentualnymi akcjami (np. przycisk "API Key", "Comms Log").
+
+### 6.2. Marketplace (Katalog Kursów)
+
+Marketplace to pierwszy ekran po zalogowaniu (jeśli kursant nie jest zapisany na żaden kurs). Wyświetla karty kursów w gridzie 2-3 kolumn.
+
+Każda **karta kursu** to Glass Card z następującą strukturą:
+
+| Element | Opis | Styl |
+|---|---|---|
+| **Cover Image** | Grafika kursu (16:9) z subtlelnym overlay gradient (od transparent do bg-base) | `rounded-t-glass`, gradient overlay |
+| **Difficulty Badge** | "BEGINNER" / "ADVANCED" | Status Badge, prawy górny róg |
+| **Tytuł** | Nazwa operacji, np. "Operacja: Skynet Breaker" | `text-xl font-semibold text-ndqs-text` |
+| **Opis** | 2-3 linijki opisu fabularnego | `text-sm text-ndqs-text-secondary line-clamp-3` |
+| **Meta** | Ikony + tekst: "6 Questów", "~12h", "FastAPI + Docker" | `text-xs text-ndqs-text-muted` |
+| **Progress** | Segmented Progress Bar (jeśli enrolled) | Jak w sekcji 5.4 |
+| **CTA** | "Rozpocznij Operację" lub "Kontynuuj" | Primary Gold Button |
+
+Na hover cała karta lekko się unosi (`hover:-translate-y-1`) i border staje się jaśniejszy. Framer Motion: `whileHover={{ y: -4 }}` z `transition: { type: "spring" }`.
+
+### 6.3. Quest Map (Mapa Questów)
+
+Mapa questów to **centralny ekran kursu**. Wyświetla questy jako węzły (nodes) połączone liniami (edges) w grafie skierowanym. Używamy biblioteki **React Flow** z custom nodes.
+
+Każdy **Quest Node** to okrągły lub zaokrąglony prostokąt z:
+
+| Stan | Wygląd | Efekt |
+|---|---|---|
+| **LOCKED** | `bg-white/[0.03]`, `border-white/[0.06]`, `opacity-50` | Ikona kłódki, brak interakcji |
+| **AVAILABLE** | `bg-white/[0.05]`, `border-ndqs-gold/30` | Subtelny `animate-border-pulse` |
+| **IN_PROGRESS** | `bg-ndqs-gold/[0.08]`, `border-ndqs-gold/50`, `shadow-glow-gold` | Mocny pulse, złota poświata |
+| **COMPLETED** | `bg-ndqs-success/[0.08]`, `border-ndqs-success/30` | Ikona checkmark, statyczny |
+| **FAILED** | `bg-ndqs-error/[0.08]`, `border-ndqs-error/30` | Ikona X, opcja retry |
+
+**Edges (linie łączące)** to animowane SVG paths z gradientem od koloru source node do target node. Ukończone połączenia świecą złotem, zablokowane są szare i przerywane.
+
+Po kliknięciu na quest node, z prawej strony wysuwa się **Quest Detail Panel** (slide-in z Framer Motion, `AnimatePresence`). Panel zawiera: tytuł questa, opis fabularny, cele (checklist), przycisk "Pobierz Briefing" i historię submisji.
+
+### 6.4. Comms Log (Dziennik Komunikacji)
+
+Comms Log to ekran w stylu terminala, gdzie kursant widzi komunikację z Game Masterem (AI). Wyglądem przypomina czat, ale z terminalowym sznytem.
+
+**Wiadomości od Game Mastera** pojawiają się po lewej stronie z avatarem AI (np. ikona oka w złotym kółku). Tekst jest w foncie mono (`font-mono`) i pojawia się z efektem Typewriter (litera po literze). Tło wiadomości to `bg-ndqs-purple/[0.06]` z `border-l-2 border-ndqs-purple`.
+
+**Wiadomości systemowe** (np. "SUBMISSION RECEIVED", "TEST PASSED") pojawiają się na środku jako małe, wycentrowane etykiety w stylu Status Badge.
+
+**Bloki kodu** w wiadomościach mają tło `bg-black/40` z `border border-white/[0.06]` i przyciskiem "Copy" w prawym górnym rogu.
+
+Na dole ekranu znajduje się input (jeśli quest wymaga interakcji tekstowej z AI), stylizowany jak terminal prompt: `$_` migający kursor.
+
+### 6.5. Panel Admina / Twórcy Kursu
+
+Panel admina powinien być wizualnie spójny z panelem kursanta (te same Glass Cards, ta sama paleta), ale z dodatkowym akcentem -- **subtelny fioletowy border** na sidebar zamiast standardowego, sygnalizujący tryb admin.
+
+Kluczowe ekrany admina:
+
+**Quest Builder** -- edytor node'ów (React Flow w trybie edycji). Admin przeciąga i upuszcza questy, łączy je strzałkami, edytuje warunki przejścia. Każdy node po kliknięciu otwiera formularz z polami: tytuł, opis fabularny, prompt dla Game Mastera, test cases.
+
+**Test Case Editor** -- wbudowany edytor kodu (Monaco Editor z ciemnym motywem dopasowanym do naszej palety). Tło Monaco: `#0A0A12`, kolory składni: złoto dla stringów, purple dla keywords.
+
+**Analytics Dashboard** -- wykresy (Recharts lub Chart.js) z ciemnym tłem. Linie wykresów w kolorze `ndqs-gold`, tło wykresu transparentne, grid lines w `rgba(255,255,255,0.05)`.
+
+### 6.6. Landing Page (Strona Publiczna)
+
+Landing page jest jedynym miejscem, gdzie pozwalamy sobie na więcej efektów. Aurora Background jest tu intensywniejsza (wyższe opacity gradientów). Hero section zawiera duży tytuł (`display` size), krótki opis i dwa przyciski (Primary Gold + Secondary Ghost).
+
+Sekcje poniżej hero to Glass Cards z feature'ami platformy, każda z ikoną i krótkim opisem. Sekcje pojawiają się na scroll z animacją `slide-up` (Framer Motion `whileInView`).
+
+---
+
+## 7. Animacje i Mikro-interakcje (Framer Motion)
+
+Statyczny interfejs jest martwy. NDQS musi żyć. Poniżej kompletna lista animacji do zaimplementowania.
+
+### 7.1. Staggered Entrance (Pojawianie się listy)
+
+Kiedy ładuje się lista questów, kart w marketplace lub wiadomości w Comms Log, elementy muszą wjeżdżać od dołu z lekkim opóźnieniem (stagger). To daje wrażenie "materializowania się" danych.
+
+```tsx
+// Framer Motion Variants
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { 
+    opacity: 1, y: 0, 
+    transition: { type: "spring", stiffness: 300, damping: 24 } 
+  }
+};
+
+// Użycie:
+<motion.div variants={container} initial="hidden" animate="show">
+  {quests.map(q => (
+    <motion.div key={q.id} variants={item}>
+      <QuestCard quest={q} />
+    </motion.div>
+  ))}
+</motion.div>
+```
+
+### 7.2. Terminal Typewriter Effect
+
+Kiedy Game Master wysyła nową wiadomość, tekst pojawia się litera po literze z losowym, drobnym opóźnieniem (30-80ms) między znakami. To symuluje prawdziwe AI generujące odpowiedź i buduje napięcie fabularne.
+
+```tsx
+// Hook: useTypewriter
+function useTypewriter(text: string, speed: number = 40) {
+  const [displayed, setDisplayed] = useState("");
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayed(text.slice(0, i + 1));
+      i++;
+      if (i >= text.length) clearInterval(interval);
+    }, speed + Math.random() * 40); // Losowe opóźnienie
+    return () => clearInterval(interval);
+  }, [text, speed]);
+  return displayed;
+}
+```
+
+### 7.3. Page Transitions
+
+Przejścia między stronami (np. z Marketplace do Quest Map) powinny być płynne. Używamy `AnimatePresence` z Framer Motion w layout.tsx.
+
+```tsx
+// Fade + slide transition
+<AnimatePresence mode="wait">
+  <motion.div
+    key={pathname}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -8 }}
+    transition={{ duration: 0.2, ease: "easeInOut" }}
+  >
+    {children}
+  </motion.div>
+</AnimatePresence>
+```
+
+### 7.4. Quest Node Interactions
+
+Na Quest Map, węzły reagują na interakcje:
+
+| Interakcja | Animacja |
+|---|---|
+| Hover na AVAILABLE node | `scale: 1.05`, border brightens, glow appears |
+| Click na node | Node "pulses" (`scale: [1, 1.1, 1]`), detail panel slides in |
+| Quest COMPLETED | Confetti-like particles (opcjonalnie), node zmienia kolor na success |
+| Quest FAILED | Node "shakes" (`x: [-5, 5, -5, 5, 0]`), error glow |
+
+### 7.5. Notification Toast
+
+Toasty (np. "Submission received!", "Test passed!") pojawiają się z prawego górnego rogu z animacją slide-in i mają Glass Card styling z odpowiednim kolorem akcentu.
+
+```tsx
+// Toast animation
+initial={{ opacity: 0, x: 100, scale: 0.95 }}
+animate={{ opacity: 1, x: 0, scale: 1 }}
+exit={{ opacity: 0, x: 100, scale: 0.95 }}
+transition={{ type: "spring", stiffness: 400, damping: 25 }}
+```
+
+---
+
+## 8. Ikonografia
+
+Używamy biblioteki **Lucide Icons** (domyślna w shadcn/ui). Ikony powinny mieć rozmiar `16px` w UI i `20px` w nawigacji. Kolor ikon: `text-ndqs-text-secondary` domyślnie, `text-ndqs-gold` dla aktywnych elementów.
+
+Kluczowe ikony dla NDQS:
+
+| Element | Ikona Lucide | Uwagi |
+|---|---|---|
+| Quest (locked) | `Lock` | |
+| Quest (available) | `Target` | |
+| Quest (in progress) | `Loader2` | Z animacją `animate-spin` |
+| Quest (completed) | `CheckCircle2` | Kolor success |
+| Comms Log | `MessageSquare` | |
+| API Key | `Key` | |
+| Submit | `Send` | |
+| Game Master | `Eye` | W złotym kółku |
+| Marketplace | `Store` | |
+| Settings | `Settings` | |
+| User | `User` | |
+| Logout | `LogOut` | |
+| Code | `Code2` | |
+| Terminal | `Terminal` | |
+| Download | `Download` | Starter Pack |
+
+---
+
+## 9. Responsywność
+
+Platforma jest **desktop-first** (kursanci pracują z kodem, więc potrzebują dużego ekranu), ale musi być użyteczna na tabletach.
+
+| Breakpoint | Zachowanie |
+|---|---|
+| **Desktop (1280px+)** | Pełny layout: sidebar (240px) + main content. Quest Map z React Flow. |
+| **Tablet (768px-1279px)** | Sidebar chowa się za hamburger menu (slide-in overlay). Quest Map upraszcza się do listy. |
+| **Mobile (< 768px)** | Sidebar = bottom navigation (4 ikony). Quest Map = lista kart. Comms Log = pełny ekran. |
+
+Sidebar na desktop powinien mieć opcję "collapse" do wersji z samymi ikonami (56px szerokości), aby dać więcej miejsca na Quest Map lub Comms Log.
+
+---
+
+## 10. Performance i Accessibility
+
+### 10.1. Performance
+
+Efekty glassmorphism i blur są GPU-intensive. Aby uniknąć problemów z wydajnością, należy stosować następujące zasady. Na elementach z `backdrop-blur` dodajemy `will-change: transform` (w Tailwind: `will-change-transform`), co promuje element do osobnej warstwy GPU. Aurora Background powinna używać `transform: translateZ(0)` zamiast animowania `top/left`. Ograniczamy liczbę jednocześnie widocznych elementów z `backdrop-blur` do maksymalnie 10-15 na ekranie. Dla Comms Loga z dużą ilością wiadomości używamy wirtualizacji (np. `react-virtuoso`).
+
+### 10.2. Accessibility
+
+Kontrast tekstu `text-primary` (#F8FAFC) na `bg-base` (#05050A) wynosi **18.5:1**, co znacznie przekracza wymagania WCAG AAA (7:1). Kontrast `text-secondary` (#94A3B8) na `bg-base` wynosi **7.2:1**, co spełnia WCAG AA. Wszystkie interaktywne elementy muszą mieć widoczny focus ring (`focus:ring-2 focus:ring-ndqs-gold/50`). Animacje powinny respektować `prefers-reduced-motion` -- w takim przypadku wyłączamy Aurora Background i Typewriter Effect.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora, .animate-border-pulse, .animate-typewriter {
+    animation: none !important;
+  }
+}
+```
+
+---
+
+## 11. Biblioteki i Zależności
+
+Poniżej kompletna lista pakietów npm potrzebnych do implementacji design systemu.
+
+| Pakiet | Wersja | Zastosowanie |
+|---|---|---|
+| `tailwindcss` | v4+ | Utility-first CSS |
+| `tailwindcss-animate` | latest | Dodatkowe animacje Tailwind |
+| `framer-motion` | v11+ | Animacje React, page transitions, gestures |
+| `@radix-ui/*` | latest | Headless UI primitives (via shadcn/ui) |
+| `shadcn/ui` | latest | Bazowe komponenty (Dialog, Dropdown, Toast, etc.) |
+| `@xyflow/react` | latest | React Flow -- Quest Map (node graph) |
+| `lucide-react` | latest | Ikony |
+| `@monaco-editor/react` | latest | Edytor kodu (Admin: Test Case Editor) |
+| `react-virtuoso` | latest | Wirtualizacja listy (Comms Log) |
+| `recharts` | latest | Wykresy (Admin: Analytics) |
+| `next-themes` | latest | Zarządzanie motywem (choć mamy tylko dark) |
+| `geist` | latest | Font Geist Sans + Geist Mono |
+
+---
+
+## 12. Podsumowanie: Checklist dla Agenta Frontendowego
+
+Budując tę platformę, postępuj według poniższej listy kontrolnej. Każdy punkt jest krytyczny dla osiągnięcia efektu "Wow".
+
+| Priorytet | Zadanie | Szczegóły |
+|---|---|---|
+| **P0** | Ustaw tło `#05050A` + Aurora Background | 3 gradient orbs (purple, gold, blue) z blur i animacją |
+| **P0** | Zbuduj Glass Card jako reusable component | `bg-white/[0.03]` + `backdrop-blur` + `border-white/[0.08]` |
+| **P0** | Skonfiguruj fonty Geist Sans + Geist Mono | Via `next/font/local` lub pakiet `geist` |
+| **P0** | Wklej tailwind.config.ts z tego dokumentu | Wszystkie custom colors, shadows, animations |
+| **P1** | Zaimplementuj Sidebar z collapse | 240px -> 56px, border-r, bg-ndqs-sidebar |
+| **P1** | Zbuduj Quest Map z React Flow | Custom nodes z 5 stanami wizualnymi |
+| **P1** | Zbuduj Comms Log z Typewriter Effect | Font mono, staggered messages, code blocks |
+| **P1** | Dodaj Framer Motion page transitions | AnimatePresence w layout.tsx |
+| **P2** | Zbuduj Marketplace z kartami kursów | Grid, hover lift, progress bar |
+| **P2** | Zbuduj Status Badges | Uppercase, tracking-wider, colored dots |
+| **P2** | Dodaj glow effects na CTA buttons | Blur div za przyciskiem, opacity na hover |
+| **P3** | Dodaj `prefers-reduced-motion` support | Wyłącz animacje dla użytkowników z ustawieniem |
+| **P3** | Dodaj noise texture overlay | Subtelna tekstura (SVG) na Aurora Background |
+| **P3** | Zoptymalizuj performance | `will-change-transform`, wirtualizacja Comms Log |
+
+> **Złota zasada:** Jeśli coś wygląda jak "domyślny shadcn/ui z ciemnym motywem", to znaczy, że trzeba dodać więcej glassmorphism, więcej glow i więcej negative space. Platforma ma wyglądać jak interfejs z filmu sci-fi, nie jak panel admina.
+
+---
+
+**Źródła (Research):**
+
+[1]: Dark Glassmorphism: The Aesthetic That Will Define UI in 2026 -- MustBeWebCode (Medium, Dec 2025)
+
+[2]: 20 Modern Tech Color Palettes for SaaS and AI Startups -- ilovehue.co (2026)
+
+[3]: Web Design Innovation Trends Driven by Framer Motion Movement -- Orpetron (Medium, Feb 2026)
+
+[4]: 10 Font Pairings So Good They Feel Like a Secret -- dev.to (Mar 2026)
+
+[5]: Aceternity UI Components Library -- ui.aceternity.com (2026)
+
+[6]: Linear App -- linear.app (Design Analysis, Apr 2026)

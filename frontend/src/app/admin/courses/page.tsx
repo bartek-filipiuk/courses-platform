@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuthMutate } from "@/lib/use-api";
+import { Button, Input, Textarea } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 interface CourseForm {
 	title: string;
@@ -53,22 +55,20 @@ export default function AdminCoursesPage() {
 		}
 	};
 
-	const inputClass =
-		"w-full rounded-xl border border-[#2A2A2E] bg-[#0A0A0B] px-4 py-3 text-white placeholder-[#A1A1AA]/50 focus:border-[#6366F1] focus:outline-none transition-colors";
-
 	return (
-		<div className="min-h-screen bg-[#0A0A0B] p-8">
+		<div className="min-h-screen bg-bg-base p-8">
 			<div className="max-w-3xl mx-auto">
-				<h1 className="text-3xl font-bold text-white mb-2">Create Course</h1>
-				<p className="text-[#A1A1AA] mb-8">Define a new operation for your students.</p>
+				<h1 className="text-3xl font-bold text-text-primary mb-2">Create Course</h1>
+				<p className="text-text-secondary mb-8">Define a new operation for your students.</p>
 
 				{message && (
 					<div
-						className={`mb-6 p-4 rounded-xl border ${
+						className={cn(
+							"mb-6 p-4 rounded-xl border",
 							message.type === "success"
-								? "border-[#22C55E]/30 bg-[#22C55E]/10 text-[#22C55E]"
-								: "border-red-500/30 bg-red-500/10 text-red-400"
-						}`}
+								? "border-accent-success/30 bg-accent-success/10 text-accent-success"
+								: "border-accent-error/30 bg-accent-error/10 text-accent-error",
+						)}
 					>
 						{message.text}
 					</div>
@@ -77,46 +77,43 @@ export default function AdminCoursesPage() {
 				<form onSubmit={handleSubmit} className="space-y-6">
 					{/* Title */}
 					<div>
-						<label htmlFor="title" className="block text-sm font-medium text-[#A1A1AA] mb-2">
+						<label htmlFor="title" className="block text-sm font-medium text-text-secondary mb-2">
 							Title *
 						</label>
-						<input
+						<Input
 							id="title"
 							type="text"
 							required
 							value={form.title}
 							onChange={(e) => setForm({ ...form, title: e.target.value })}
-							className={inputClass}
 							placeholder="e.g. Fullstack Web Development"
 						/>
 					</div>
 
 					{/* Narrative title */}
 					<div>
-						<label htmlFor="narrative_title" className="block text-sm font-medium text-[#A1A1AA] mb-2">
+						<label htmlFor="narrative_title" className="block text-sm font-medium text-text-secondary mb-2">
 							Narrative Title
 						</label>
-						<input
+						<Input
 							id="narrative_title"
 							type="text"
 							value={form.narrative_title}
 							onChange={(e) => setForm({ ...form, narrative_title: e.target.value })}
-							className={inputClass}
 							placeholder="e.g. Operation: Skynet Breaker"
 						/>
 					</div>
 
 					{/* Description */}
 					<div>
-						<label htmlFor="description" className="block text-sm font-medium text-[#A1A1AA] mb-2">
+						<label htmlFor="description" className="block text-sm font-medium text-text-secondary mb-2">
 							Description
 						</label>
-						<textarea
+						<Textarea
 							id="description"
 							rows={4}
 							value={form.description}
 							onChange={(e) => setForm({ ...form, description: e.target.value })}
-							className={inputClass}
 							placeholder="What is this course about?"
 						/>
 					</div>
@@ -124,28 +121,26 @@ export default function AdminCoursesPage() {
 					{/* Game Master persona */}
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
-							<label htmlFor="persona_name" className="block text-sm font-medium text-[#A1A1AA] mb-2">
+							<label htmlFor="persona_name" className="block text-sm font-medium text-text-secondary mb-2">
 								Game Master Name
 							</label>
-							<input
+							<Input
 								id="persona_name"
 								type="text"
 								value={form.persona_name}
 								onChange={(e) => setForm({ ...form, persona_name: e.target.value })}
-								className={inputClass}
 								placeholder="e.g. ORACLE"
 							/>
 						</div>
 						<div>
-							<label htmlFor="model_id" className="block text-sm font-medium text-[#A1A1AA] mb-2">
+							<label htmlFor="model_id" className="block text-sm font-medium text-text-secondary mb-2">
 								LLM Model (OpenRouter)
 							</label>
-							<input
+							<Input
 								id="model_id"
 								type="text"
 								value={form.model_id}
 								onChange={(e) => setForm({ ...form, model_id: e.target.value })}
-								className={inputClass}
 								placeholder="anthropic/claude-sonnet-4-6"
 							/>
 						</div>
@@ -153,30 +148,29 @@ export default function AdminCoursesPage() {
 
 					{/* Persona prompt */}
 					<div>
-						<label htmlFor="persona_prompt" className="block text-sm font-medium text-[#A1A1AA] mb-2">
+						<label htmlFor="persona_prompt" className="block text-sm font-medium text-text-secondary mb-2">
 							Game Master System Prompt
 						</label>
-						<textarea
+						<Textarea
 							id="persona_prompt"
 							rows={6}
 							value={form.persona_prompt}
 							onChange={(e) => setForm({ ...form, persona_prompt: e.target.value })}
-							className={`${inputClass} font-mono text-sm`}
+							className="font-mono text-sm"
 							placeholder="You are ORACLE, a rogue AI fragment..."
 						/>
 					</div>
 
 					{/* Cover image URL */}
 					<div>
-						<label htmlFor="cover_image_url" className="block text-sm font-medium text-[#A1A1AA] mb-2">
+						<label htmlFor="cover_image_url" className="block text-sm font-medium text-text-secondary mb-2">
 							Cover Image URL
 						</label>
-						<input
+						<Input
 							id="cover_image_url"
 							type="url"
 							value={form.cover_image_url}
 							onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })}
-							className={inputClass}
 							placeholder="https://..."
 						/>
 					</div>
@@ -188,21 +182,23 @@ export default function AdminCoursesPage() {
 							type="checkbox"
 							checked={form.is_published}
 							onChange={(e) => setForm({ ...form, is_published: e.target.checked })}
-							className="w-4 h-4 rounded border-[#2A2A2E] bg-[#0A0A0B] text-[#6366F1] focus:ring-[#6366F1]"
+							className="w-4 h-4 rounded border-border-default bg-bg-base text-accent-primary focus:ring-accent-primary"
 						/>
-						<label htmlFor="is_published" className="text-sm text-[#A1A1AA]">
+						<label htmlFor="is_published" className="text-sm text-text-secondary">
 							Publish immediately (visible in catalog)
 						</label>
 					</div>
 
 					{/* Submit */}
-					<button
+					<Button
 						type="submit"
 						disabled={saving}
-						className="w-full py-3 rounded-xl bg-[#6366F1] text-white font-medium hover:bg-[#5558E6] active:scale-[0.99] transition-all disabled:opacity-50"
+						loading={saving}
+						size="lg"
+						className="w-full"
 					>
 						{saving ? "Creating..." : "Create Course"}
-					</button>
+					</Button>
 				</form>
 			</div>
 		</div>

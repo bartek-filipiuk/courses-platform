@@ -20,6 +20,6 @@ describe("Home page", () => {
 	it("has dark background styling", () => {
 		render(<Home />);
 		const mains = screen.getAllByRole("main");
-		expect(mains[0].className).toContain("bg-[#0A0A0B]");
+		expect(mains[0].className).toContain("bg-bg-base");
 	});
 });

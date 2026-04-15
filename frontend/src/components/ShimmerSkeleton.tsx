@@ -9,7 +9,7 @@ interface SkeletonProps {
 }
 
 export default function ShimmerSkeleton({ className = "", variant = "text" }: SkeletonProps) {
-	const base = "relative overflow-hidden bg-[#1C1C1F] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-[#2A2A2E]/50 before:to-transparent before:animate-shimmer";
+	const base = "relative overflow-hidden bg-bg-surface-active before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-border-default/50 before:to-transparent before:animate-shimmer";
 
 	const variants: Record<string, string> = {
 		text: "h-4 rounded-md",
@@ -23,7 +23,7 @@ export default function ShimmerSkeleton({ className = "", variant = "text" }: Sk
 
 export function SkeletonCard() {
 	return (
-		<div className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-6 space-y-4">
+		<div className="rounded-2xl border border-border-default bg-bg-elevated p-6 space-y-4">
 			<ShimmerSkeleton variant="text" className="w-1/3 h-3" />
 			<ShimmerSkeleton variant="text" className="w-2/3 h-5" />
 			<ShimmerSkeleton variant="text" className="w-full h-3" />
@@ -38,7 +38,7 @@ export function SkeletonCard() {
 
 export function SkeletonStats() {
 	return (
-		<div className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-5 space-y-2">
+		<div className="rounded-2xl border border-border-default bg-bg-elevated p-5 space-y-2">
 			<ShimmerSkeleton variant="text" className="w-16 h-3" />
 			<ShimmerSkeleton variant="text" className="w-24 h-8" />
 			<ShimmerSkeleton variant="text" className="w-20 h-3" />

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
+import { Button, Input, Textarea } from "@/components/ui";
+import GlassCard from "@/components/GlassCard";
 
 interface QuestBriefing {
 	id: string;
@@ -82,104 +84,100 @@ export default function QuestPage() {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center">
-				<div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
+			<div className="min-h-screen bg-bg-base flex items-center justify-center">
+				<div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
 			</div>
 		);
 	}
 
 	if (!quest) {
 		return (
-			<div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center">
-				<p className="text-red-400">Quest not found or locked.</p>
+			<div className="min-h-screen bg-bg-base flex items-center justify-center">
+				<p className="text-accent-error">Quest not found or locked.</p>
 			</div>
 		);
 	}
 
-	const inputClass = "w-full rounded-xl border border-[#2A2A2E] bg-[#0A0A0B] px-4 py-3 text-white placeholder-[#A1A1AA]/50 focus:border-[#6366F1] focus:outline-none transition-colors";
-
 	return (
-		<div className="min-h-screen bg-[#0A0A0B] p-8">
+		<div className="min-h-screen bg-bg-base p-8">
 			<div className="max-w-4xl mx-auto">
 				{/* Briefing */}
 				<div className="mb-8">
 					<div className="flex items-center gap-2 mb-4">
 						{quest.skills.map((s) => (
-							<span key={s} className="px-2 py-0.5 text-xs bg-[#6366F1]/20 text-[#6366F1] rounded-full">{s}</span>
+							<span key={s} className="px-2 py-0.5 text-xs bg-accent-primary/20 text-accent-primary rounded-full">{s}</span>
 						))}
 					</div>
-					<h1 className="text-3xl font-bold text-white mb-4">{quest.title}</h1>
-					<div className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-6">
-						<pre className="font-mono text-sm text-[#22C55E] whitespace-pre-wrap leading-relaxed">
+					<h1 className="text-3xl font-bold text-text-primary mb-4">{quest.title}</h1>
+					<GlassCard>
+						<pre className="font-mono text-sm text-accent-success whitespace-pre-wrap leading-relaxed">
 							{quest.briefing}
 						</pre>
-					</div>
+					</GlassCard>
 				</div>
 
 				{/* Submit form */}
-				<div className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-6 mb-6">
-					<h2 className="text-lg font-semibold text-white mb-4">Submit Answer</h2>
+				<GlassCard className="mb-6">
+					<h2 className="text-lg font-semibold text-text-primary mb-4">Submit Answer</h2>
 
 					{quest.evaluation_type === "text_answer" && (
-						<textarea rows={6} value={answer} onChange={(e) => setAnswer(e.target.value)} className={`${inputClass} font-mono text-sm`} placeholder="Your answer..." />
+						<Textarea rows={6} value={answer} onChange={(e) => setAnswer(e.target.value)} className="font-mono text-sm" placeholder="Your answer..." />
 					)}
 
 					{quest.evaluation_type === "url_check" && (
-						<input type="url" value={url} onChange={(e) => setUrl(e.target.value)} className={inputClass} placeholder="https://your-app.com/api/health" />
+						<Input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://your-app.com/api/health" />
 					)}
 
 					{quest.evaluation_type === "quiz" && (
-						<input type="text" value={selectedOption} onChange={(e) => setSelectedOption(e.target.value)} className={inputClass} placeholder="Option ID (e.g. opt_1)" />
+						<Input type="text" value={selectedOption} onChange={(e) => setSelectedOption(e.target.value)} placeholder="Option ID (e.g. opt_1)" />
 					)}
 
 					{quest.evaluation_type === "command_output" && (
 						<div className="space-y-3">
-							<input type="text" value={command} onChange={(e) => setCommand(e.target.value)} className={inputClass} placeholder="Command (e.g. docker ps)" />
-							<textarea rows={4} value={output} onChange={(e) => setOutput(e.target.value)} className={`${inputClass} font-mono text-sm`} placeholder="Paste command output..." />
+							<Input type="text" value={command} onChange={(e) => setCommand(e.target.value)} placeholder="Command (e.g. docker ps)" />
+							<Textarea rows={4} value={output} onChange={(e) => setOutput(e.target.value)} className="font-mono text-sm" placeholder="Paste command output..." />
 						</div>
 					)}
 
 					<div className="flex gap-3 mt-4">
-						<button type="button" onClick={handleSubmit} disabled={submitting}
-							className="px-6 py-3 rounded-xl bg-[#6366F1] text-white font-medium hover:bg-[#5558E6] disabled:opacity-50 transition-all">
+						<Button variant="primary" size="lg" onClick={handleSubmit} loading={submitting}>
 							{submitting ? "Evaluating..." : "Submit"}
-						</button>
-						<button type="button" onClick={handleHint} disabled={hintLoading}
-							className="px-6 py-3 rounded-xl border border-[#2A2A2E] text-[#A1A1AA] hover:text-white hover:bg-[#1C1C1F] disabled:opacity-50 transition-all">
+						</Button>
+						<Button variant="secondary" size="lg" onClick={handleHint} disabled={hintLoading}>
 							{hintLoading ? "..." : `Hint (${quest.max_hints} left)`}
-						</button>
+						</Button>
 					</div>
-				</div>
+				</GlassCard>
 
 				{/* Hint */}
 				{hintText && (
-					<div className="rounded-2xl border border-[#F59E0B]/30 bg-[#F59E0B]/5 p-6 mb-6">
-						<p className="text-sm font-mono text-[#F59E0B]">{hintText}</p>
+					<div className="rounded-2xl border border-accent-warning/30 bg-accent-warning/5 p-6 mb-6">
+						<p className="text-sm font-mono text-accent-warning">{hintText}</p>
 					</div>
 				)}
 
 				{/* Result / Feedback */}
 				{result && (
-					<div className={`rounded-2xl border p-6 ${result.passed ? "border-[#22C55E]/30 bg-[#22C55E]/5" : "border-red-500/30 bg-red-500/5"}`}>
+					<div className={`rounded-2xl border p-6 ${result.passed ? "border-accent-success/30 bg-accent-success/5" : "border-accent-error/30 bg-accent-error/5"}`}>
 						<div className="flex items-center gap-3 mb-4">
-							<span className={`text-2xl ${result.passed ? "text-[#22C55E]" : "text-red-400"}`}>
+							<span className={`text-2xl ${result.passed ? "text-accent-success" : "text-accent-error"}`}>
 								{result.passed ? "PASS" : "FAIL"}
 							</span>
 							{result.execution_time_ms && (
-								<span className="text-xs text-[#A1A1AA]">{result.execution_time_ms}ms</span>
+								<span className="text-xs text-text-secondary">{result.execution_time_ms}ms</span>
 							)}
 						</div>
 
-						<pre className="font-mono text-sm text-[#FAFAFA] whitespace-pre-wrap leading-relaxed mb-4">
+						<pre className="font-mono text-sm text-text-primary whitespace-pre-wrap leading-relaxed mb-4">
 							{result.narrative_response}
 						</pre>
 
 						{result.passed && result.quality_scores && (
-							<div className="grid grid-cols-4 gap-3 pt-4 border-t border-[#2A2A2E]">
+							<div className="grid grid-cols-4 gap-3 pt-4 border-t border-border-default">
 								{Object.entries(result.quality_scores).map(([key, value]) => (
 									<div key={key} className="text-center">
-										<div className="text-2xl font-bold text-white">{value}</div>
-										<div className="text-xs text-[#A1A1AA] capitalize">{key}</div>
+										<div className="text-2xl font-bold text-text-primary">{value}</div>
+										<div className="text-xs text-text-secondary capitalize">{key}</div>
 									</div>
 								))}
 							</div>
