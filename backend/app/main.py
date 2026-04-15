@@ -16,6 +16,7 @@ from app.auth.router import router as auth_router
 from app.courses.router import router as courses_router
 from app.evaluation.router import router as evaluation_router
 from app.quests.router import router as quests_router
+from app.stats.router import router as stats_router
 from app.config import settings
 from app.logging import setup_logging
 from app.middleware import CorrelationIdMiddleware, OriginCheckMiddleware, SecurityHeadersMiddleware
@@ -103,6 +104,7 @@ app.include_router(auth_router)
 app.include_router(courses_router)
 app.include_router(quests_router)
 app.include_router(evaluation_router)
+app.include_router(stats_router)
 
 
 @app.get("/api/health")

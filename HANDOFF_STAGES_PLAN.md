@@ -155,29 +155,29 @@
 **User Stories:** US-11 (Comms Log), US-13 (Profil i statystyki), US-19 (Metryki kursu)
 
 ### Taski:
-- [ ] T1: Comms Log API — `GET /api/courses/{id}/comms-log` (paginowane max 100/page, filtry: quest_id, message_type, date_start, date_end), polling-friendly (test → kod → verify)
-- [ ] T2: Statistics API — `GET /api/users/me/stats` (test → kod → verify)
-- [ ] T3: Admin Analytics API — `GET /api/admin/analytics/{course_id}` (test → kod → verify)
-- [ ] T4: Frontend: Comms Log — `/comms` widok terminalowy (test → kod → verify)
-- [ ] T5: Frontend: Profil i statystyki — `/profile` z dashboardem (test → kod → verify)
-- [ ] T6: Frontend: Admin Analytics — `/admin/analytics` z wykresami (test → kod → verify)
+- [x] T1: Comms Log API — `GET /api/courses/{id}/comms-log` (paginowane max 100/page, filtry: quest_id, message_type, date_start, date_end), polling-friendly (test → kod → verify)
+- [x] T2: Statistics API — `GET /api/users/me/stats` (test → kod → verify)
+- [x] T3: Admin Analytics API — `GET /api/admin/analytics/{course_id}` (test → kod → verify)
+- [x] T4: Frontend: Comms Log — `/comms` widok terminalowy (test → kod → verify)
+- [x] T5: Frontend: Profil i statystyki — `/profile` z dashboardem (test → kod → verify)
+- [x] T6: Frontend: Admin Analytics — `/admin/analytics` z wykresami (test → kod → verify)
 
 ### Security (MANDATORY):
-- [ ] S1: Data isolation — kursant widzi TYLKO swoje dane (Baseline #1)
-- [ ] S2: Pagination limits — max 100 records per page (Baseline #8)
-- [ ] S3: Test security: data isolation test (Baseline #1)
-- [ ] S4: Security event logging (Baseline #9)
+- [x] S1: Data isolation — kursant widzi TYLKO swoje dane (Baseline #1)
+- [x] S2: Pagination limits — max 100 records per page (Baseline #8)
+- [x] S3: Test security: data isolation test (Baseline #1)
+- [x] S4: Security event logging (Baseline #9)
 
 ### Docs (MANDATORY):
-- [ ] Update docs/CHANGELOG.md
-- [ ] Update docs/API.md
-- [ ] Update docs/README.md
+- [x] Update docs/CHANGELOG.md
+- [x] Update docs/API.md
+- [x] Update docs/README.md
 
 ### Stage Completion (MANDATORY):
-- [ ] Self-check: zakres stage zgodny z PRD (US-11, US-13, US-19 pokryte)
-- [ ] Self-check: brak hardcoded secrets w kodzie
-- [ ] Self-check: testy zielone (funkcjonalne + security)
-- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+- [x] Self-check: zakres stage zgodny z PRD (US-11, US-13, US-19 pokryte)
+- [x] Self-check: brak hardcoded secrets w kodzie
+- [x] Self-check: testy zielone (funkcjonalne + security)
+- [x] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
 
 ---
 
