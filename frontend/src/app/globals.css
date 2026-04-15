@@ -36,3 +36,47 @@ body {
 	color: var(--foreground);
 	font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* Transition tokens */
+:root {
+	--transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+	--focus-ring: 0 0 0 3px rgba(99, 102, 241, 0.15);
+	--glow-primary: 0 0 20px rgba(99, 102, 241, 0.3);
+	--glow-success: 0 0 15px rgba(34, 197, 94, 0.2);
+	--glass-bg: rgba(20, 20, 22, 0.7);
+	--glass-border: rgba(42, 42, 46, 0.5);
+}
+
+/* Focus ring for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+	outline: none;
+	box-shadow: var(--focus-ring);
+}
+
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+	0% { transform: translateX(-100%); }
+	100% { transform: translateX(100%); }
+}
+
+@theme inline {
+	--animate-shimmer: shimmer 1.5s infinite;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}

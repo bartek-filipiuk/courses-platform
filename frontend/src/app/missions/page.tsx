@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
+import { FadeInUp, StaggerContainer, StaggerItem } from "@/lib/motion";
+import { SkeletonCard } from "@/components/ShimmerSkeleton";
 import type { Course } from "@/types";
 
 export default function MissionsPage() {
@@ -23,10 +25,7 @@ export default function MissionsPage() {
 				<h1 className="text-3xl font-bold text-white mb-8">Missions</h1>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{[1, 2, 3].map((i) => (
-						<div
-							key={i}
-							className="h-64 rounded-2xl bg-[#141416] animate-pulse"
-						/>
+						<SkeletonCard key={i} />
 					))}
 				</div>
 			</div>
@@ -44,8 +43,10 @@ export default function MissionsPage() {
 	return (
 		<div className="min-h-screen bg-[#0A0A0B] p-8">
 			<div className="max-w-7xl mx-auto">
+				<FadeInUp>
 				<h1 className="text-3xl font-bold text-white mb-2">Available Missions</h1>
 				<p className="text-[#A1A1AA] mb-8">Choose your operation and begin the quest.</p>
+				</FadeInUp>
 
 				{courses.length === 0 ? (
 					<div className="text-center py-20">

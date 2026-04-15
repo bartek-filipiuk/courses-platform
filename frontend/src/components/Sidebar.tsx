@@ -48,10 +48,10 @@ export default function Sidebar() {
 						<Link
 							key={item.href}
 							href={item.href}
-							className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+							className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
 								active
-									? "bg-[#6366F1]/10 text-[#6366F1] font-medium"
-									: "text-[#A1A1AA] hover:text-white hover:bg-[#141416]"
+									? "bg-[#6366F1]/10 text-[#6366F1] font-medium shadow-[inset_0_0_12px_rgba(99,102,241,0.1)]"
+									: "text-[#A1A1AA] hover:text-white hover:bg-[#141416] hover:translate-x-1"
 							}`}
 						>
 							<item.icon className="w-4 h-4" />
@@ -69,10 +69,10 @@ export default function Sidebar() {
 						<Link
 							key={item.href}
 							href={item.href}
-							className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+							className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
 								active
-									? "bg-[#6366F1]/10 text-[#6366F1] font-medium"
-									: "text-[#A1A1AA] hover:text-white hover:bg-[#141416]"
+									? "bg-[#6366F1]/10 text-[#6366F1] font-medium shadow-[inset_0_0_12px_rgba(99,102,241,0.1)]"
+									: "text-[#A1A1AA] hover:text-white hover:bg-[#141416] hover:translate-x-1"
 							}`}
 						>
 							<item.icon className="w-4 h-4" />

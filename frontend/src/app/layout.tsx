@@ -1,3 +1,4 @@
+import { Toaster } from "sonner";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -35,6 +36,17 @@ export default function RootLayout({
 		>
 			<body className="min-h-full flex flex-col bg-background text-foreground">
 				{children}
+				<Toaster
+					theme="dark"
+					position="bottom-right"
+					toastOptions={{
+						style: {
+							background: "#141416",
+							border: "1px solid #2A2A2E",
+							color: "#FAFAFA",
+						},
+					}}
+				/>
 			</body>
 		</html>
 	);

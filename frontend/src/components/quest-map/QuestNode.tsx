@@ -39,7 +39,8 @@ export default function QuestNode({ data }: NodeProps) {
 	return (
 		<div
 			className={`
-				px-5 py-4 rounded-2xl border-2 min-w-[180px] transition-all duration-300
+				px-5 py-4 rounded-2xl border-2 min-w-[180px] transition-all duration-300 cursor-pointer
+				hover:scale-105 backdrop-blur-xl
 				${styles.bg} ${styles.border} ${styles.glow || ""}
 				${state === "AVAILABLE" ? "animate-pulse" : ""}
 			`}

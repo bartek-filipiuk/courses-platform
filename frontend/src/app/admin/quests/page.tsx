@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAuthMutate } from "@/lib/use-api";
 
 interface QuestForm {
@@ -63,10 +64,10 @@ export default function AdminQuestsPage() {
 				body.artifact_description = form.artifact_description || undefined;
 			}
 			await mutate("/api/admin/quests", { method: "POST", body });
-			setMessage({ type: "success", text: "Quest created!" });
+			toast.success("Quest created!");
 			setForm(EMPTY_FORM);
 		} catch (e) {
-			setMessage({ type: "error", text: e instanceof Error ? e.message : "Failed" });
+			toast.error(e instanceof Error ? e.message : "Failed to create quest");
 		} finally {
 			setSaving(false);
 		}

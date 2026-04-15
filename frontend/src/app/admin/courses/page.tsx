@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAuthMutate } from "@/lib/use-api";
 
 interface CourseForm {
@@ -43,13 +44,10 @@ export default function AdminCoursesPage() {
 				Object.entries(form).filter(([, v]) => v !== ""),
 			);
 			await mutate("/api/admin/courses", { method: "POST", body });
-			setMessage({ type: "success", text: "Course created successfully!" });
+			toast.success("Course created successfully!");
 			setForm(EMPTY_FORM);
 		} catch (e) {
-			setMessage({
-				type: "error",
-				text: e instanceof Error ? e.message : "Failed to create course",
-			});
+			toast.error(e instanceof Error ? e.message : "Failed to create course");
 		} finally {
 			setSaving(false);
 		}

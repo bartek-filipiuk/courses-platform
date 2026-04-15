@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Gamepad2, Bot, Trophy, Monitor, Shield, BarChart3 } from "lucide-react";
+import { FadeInUp, StaggerContainer, StaggerItem } from "@/lib/motion";
 
 export default function LandingPage() {
 	return (
@@ -11,9 +12,12 @@ export default function LandingPage() {
 				<div className="absolute inset-0 bg-gradient-to-b from-[#6366F1]/10 via-transparent to-transparent" />
 				<div className="max-w-5xl mx-auto px-6 pt-20 pb-32 relative">
 					<div className="text-center">
+						<FadeInUp>
 						<p className="text-sm font-mono text-[#6366F1] uppercase tracking-widest mb-4">
 							Narrative-Driven Quest Sandbox
 						</p>
+						</FadeInUp>
+						<FadeInUp delay={0.1}>
 						<h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
 							Learn IT by
 							<br />
@@ -21,10 +25,14 @@ export default function LandingPage() {
 								completing quests
 							</span>
 						</h1>
+						</FadeInUp>
+						<FadeInUp delay={0.2}>
 						<p className="text-lg text-[#A1A1AA] max-w-2xl mx-auto mb-10 leading-relaxed">
 							No more boring lessons. Code in your own IDE, guided by an AI Game Master.
 							Every quest is a mission. Every mistake is a plot twist. Every success unlocks new chapters.
 						</p>
+						</FadeInUp>
+						<FadeInUp delay={0.3}>
 						<div className="flex gap-4 justify-center">
 							<Link
 								href="/missions"
@@ -39,6 +47,7 @@ export default function LandingPage() {
 								Sign In
 							</Link>
 						</div>
+						</FadeInUp>
 					</div>
 				</div>
 			</section>
@@ -49,7 +58,7 @@ export default function LandingPage() {
 					Not a course.{" "}
 					<span className="text-[#6366F1]">A mission.</span>
 				</h2>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+				<StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-8">
 					{[
 						{ icon: Gamepad2, title: "Narrative Quests", desc: "Every lesson is a quest wrapped in a story. You're not studying — you're on a mission." },
 						{ icon: Bot, title: "AI Game Master", desc: "An LLM evaluates your work, gives narrative feedback, and guides you with Socratic questions." },
@@ -58,13 +67,13 @@ export default function LandingPage() {
 						{ icon: Shield, title: "Real Security", desc: "Every quest has security checks. Your Game Master calls out vulnerabilities." },
 						{ icon: BarChart3, title: "Track Progress", desc: "Visual quest map, quality radar chart, streak counter. See your growth in real time." },
 					].map((f) => (
-						<div key={f.title} className="rounded-2xl border border-[#2A2A2E] bg-[#141416]/50 p-6 hover:border-[#6366F1]/30 transition-all duration-200 cursor-pointer hover:translate-y-[-2px]">
+						<StaggerItem key={f.title} className="rounded-2xl border border-[#2A2A2E] backdrop-blur-xl bg-[#141416]/70 p-6 hover:border-[#6366F1]/30 transition-all duration-200 cursor-pointer hover:translate-y-[-2px] hover:shadow-[0_0_20px_rgba(99,102,241,0.1)]">
 							<f.icon className="w-8 h-8 text-[#6366F1] mb-4" />
 							<h3 className="text-lg font-semibold mb-2">{f.title}</h3>
 							<p className="text-sm text-[#A1A1AA] leading-relaxed">{f.desc}</p>
-						</div>
+						</StaggerItem>
 					))}
-				</div>
+				</StaggerContainer>
 			</section>
 
 			{/* How it works */}
