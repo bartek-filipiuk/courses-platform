@@ -4,6 +4,7 @@ from fastapi import HTTPException, Request
 
 from app.auth.api_keys import validate_api_key
 from app.auth.jwt import TokenError, decode_token
+from app.redis import is_token_blacklisted
 
 
 async def get_current_user_token(request: Request) -> dict:
@@ -34,6 +35,11 @@ async def get_current_user_token(request: Request) -> dict:
         payload = decode_token(token, token_type="access")
     except TokenError:
         raise HTTPException(status_code=401, detail="Invalid or expired token") from None
+
+    # Check token blacklist (logout)
+    jti = payload.get("jti")
+    if jti and await is_token_blacklisted(jti):
+        raise HTTPException(status_code=401, detail="Token has been revoked")
 
     payload["auth_method"] = "jwt"
     return payload

@@ -10,21 +10,32 @@ from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from contextlib import asynccontextmanager
+
 from app.auth.router import router as auth_router
 from app.config import settings
 from app.logging import setup_logging
 from app.middleware import CorrelationIdMiddleware, OriginCheckMiddleware, SecurityHeadersMiddleware
 from app.rate_limit import limiter
+from app.redis import close_redis
 
 # Initialize structured logging
 setup_logging()
 
 logger = structlog.get_logger()
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    yield
+    await close_redis()
+
+
 app = FastAPI(
     title="NDQS Backend",
     description="Narrative-Driven Quest Sandbox — API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # Rate limiter setup

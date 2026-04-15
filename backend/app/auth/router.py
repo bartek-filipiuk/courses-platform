@@ -1,11 +1,13 @@
 """Auth routes — OAuth login, refresh, logout, me, API keys."""
 
+from datetime import UTC, datetime
 from urllib.parse import urlencode
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.api_keys import generate_api_key, list_user_keys, revoke_key
 from app.auth.dependencies import get_current_user_token
@@ -15,8 +17,11 @@ from app.auth.jwt import (
     create_refresh_token,
     decode_token,
 )
+from app.auth.oauth import OAuthError, exchange_code_for_token, fetch_github_profile, upsert_user
 from app.config import settings
+from app.database import get_db
 from app.rate_limit import API_KEY_GENERATE_RATE_LIMIT, LOGIN_RATE_LIMIT, _get_user_id_or_ip, limiter
+from app.redis import blacklist_token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -50,9 +55,34 @@ async def github_login(request: Request) -> RedirectResponse:
 
 
 @router.get("/github/callback")
-async def github_callback(code: str = Query(..., min_length=1)) -> dict:
-    # TODO: Exchange code for token, fetch user info, upsert user
-    return {"message": "OAuth callback received", "code": code}
+async def github_callback(
+    code: str = Query(..., min_length=1),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Exchange GitHub code for tokens, fetch profile, upsert user, return JWT pair."""
+    try:
+        github_token = await exchange_code_for_token(code)
+        profile = await fetch_github_profile(github_token)
+        user = await upsert_user(db, profile)
+    except OAuthError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role, "email": user.email}
+    )
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "display_name": user.display_name,
+            "role": user.role,
+        },
+    }
 
 
 # --- JWT Auth ---
@@ -93,8 +123,21 @@ async def refresh_token(request: Request) -> dict:
 
 
 @router.post("/logout")
-async def logout(_token_data: dict = Depends(get_current_user_token)) -> dict:
-    # TODO: Add token to Redis blacklist with TTL = remaining JWT lifetime
+async def logout(request: Request, _token_data: dict = Depends(get_current_user_token)) -> dict:
+    """Logout — blacklist the current JWT in Redis with TTL = remaining lifetime."""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1]
+        try:
+            payload = decode_token(token, token_type="access")
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti and exp:
+                ttl = int(exp - datetime.now(UTC).timestamp())
+                if ttl > 0:
+                    await blacklist_token(jti, ttl)
+        except TokenError:
+            pass  # Token already invalid, no need to blacklist
     return {"message": "Logged out successfully"}
 
 
