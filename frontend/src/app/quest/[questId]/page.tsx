@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
+import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
 
 interface QuestBriefing {
 	id: string;
@@ -23,9 +23,9 @@ interface EvalResult {
 export default function QuestPage() {
 	const params = useParams();
 	const questId = params.questId as string;
+	const { data: quest, loading } = useAuthFetch<QuestBriefing>(`/api/quests/${questId}/briefing`);
+	const mutate = useAuthMutate();
 
-	const [quest, setQuest] = useState<QuestBriefing | null>(null);
-	const [loading, setLoading] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
 	const [result, setResult] = useState<EvalResult | null>(null);
 	const [answer, setAnswer] = useState("");
@@ -35,13 +35,6 @@ export default function QuestPage() {
 	const [output, setOutput] = useState("");
 	const [hintText, setHintText] = useState<string | null>(null);
 	const [hintLoading, setHintLoading] = useState(false);
-
-	useEffect(() => {
-		apiClient<QuestBriefing>(`/api/quests/${questId}/briefing`, { token: "demo" })
-			.then(setQuest)
-			.catch(console.error)
-			.finally(() => setLoading(false));
-	}, [questId]);
 
 	const handleSubmit = async () => {
 		if (!quest) return;
@@ -55,10 +48,9 @@ export default function QuestPage() {
 		else if (quest.evaluation_type === "command_output") payload = { command, output };
 
 		try {
-			const res = await apiClient<EvalResult>(`/api/quests/${questId}/submit`, {
+			const res = await mutate<EvalResult>(`/api/quests/${questId}/submit`, {
 				method: "POST",
 				body: { type: quest.evaluation_type, payload },
-				token: "demo",
 			});
 			setResult(res);
 		} catch (e) {
@@ -76,10 +68,9 @@ export default function QuestPage() {
 	const handleHint = async () => {
 		setHintLoading(true);
 		try {
-			const res = await apiClient<{ hint: string }>(`/api/quests/${questId}/hint`, {
+			const res = await mutate<{ hint: string }>(`/api/quests/${questId}/hint`, {
 				method: "POST",
 				body: { context: answer || url || output || "" },
-				token: "demo",
 			});
 			setHintText(res.hint);
 		} catch {

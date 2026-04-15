@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
+import { getDevToken } from "@/lib/dev-auth";
 
 interface CommsEntry {
 	id: string;
@@ -26,20 +28,28 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function CommsLogPage() {
+	const searchParams = useSearchParams();
+	const courseId = searchParams.get("courseId");
 	const [entries, setEntries] = useState<CommsEntry[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState<string>("");
 
 	useEffect(() => {
+		if (!courseId) { setLoading(false); return; }
 		const params = new URLSearchParams({ per_page: "100" });
 		if (filter) params.set("message_type", filter);
 
-		// TODO: get courseId from context/route
-		apiClient<{ items: CommsEntry[] }>(`/api/courses/demo/comms-log?${params}`, { token: "demo" })
-			.then((res) => setEntries(res.items))
-			.catch(() => setEntries([]))
-			.finally(() => setLoading(false));
-	}, [filter]);
+		(async () => {
+			try {
+				const token = await getDevToken();
+				const res = await apiClient<{ items: CommsEntry[] }>(
+					`/api/courses/${courseId}/comms-log?${params}`, { token }
+				);
+				setEntries(res.items);
+			} catch { setEntries([]); }
+			finally { setLoading(false); }
+		})();
+	}, [filter, courseId]);
 
 	return (
 		<div className="min-h-screen bg-[#0A0A0B] p-8">

@@ -1,33 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import { apiClient, ApiError } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
+import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
 import type { CourseDetail } from "@/types";
 
 export default function CoursePage() {
 	const params = useParams();
 	const courseId = params.courseId as string;
-	const [course, setCourse] = useState<CourseDetail | null>(null);
-	const [loading, setLoading] = useState(true);
+	const { data: course, loading, error } = useAuthFetch<CourseDetail>(`/api/courses/${courseId}`);
 	const [enrolling, setEnrolling] = useState(false);
 	const [enrolled, setEnrolled] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-
-	useEffect(() => {
-		apiClient<CourseDetail>(`/api/courses/${courseId}`, { token: "demo" })
-			.then(setCourse)
-			.catch((e) => setError(e.message))
-			.finally(() => setLoading(false));
-	}, [courseId]);
+	const mutate = useAuthMutate();
 
 	const handleEnroll = async () => {
 		setEnrolling(true);
 		try {
-			await apiClient(`/api/courses/${courseId}/enroll`, {
-				method: "POST",
-				token: "demo",
-			});
+			await mutate(`/api/courses/${courseId}/enroll`, { method: "POST" });
 			setEnrolled(true);
 		} catch (e) {
 			if (e instanceof ApiError && e.status === 409) {

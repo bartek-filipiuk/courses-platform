@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { useAuthMutate } from "@/lib/use-api";
 
 interface QuestForm {
 	course_id: string;
@@ -41,6 +41,7 @@ export default function AdminQuestsPage() {
 	const [tab, setTab] = useState<"story" | "tech" | "artifact">("story");
 	const [saving, setSaving] = useState(false);
 	const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+	const mutate = useAuthMutate("admin");
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -61,7 +62,7 @@ export default function AdminQuestsPage() {
 				body.artifact_name = form.artifact_name;
 				body.artifact_description = form.artifact_description || undefined;
 			}
-			await apiClient("/api/admin/quests", { method: "POST", body, token: "admin-token" });
+			await mutate("/api/admin/quests", { method: "POST", body });
 			setMessage({ type: "success", text: "Quest created!" });
 			setForm(EMPTY_FORM);
 		} catch (e) {

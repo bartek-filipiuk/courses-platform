@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { useAuthFetch } from "@/lib/use-api";
 
 interface UserStats {
 	total_quests: number;
@@ -15,15 +14,7 @@ interface UserStats {
 }
 
 export default function ProfilePage() {
-	const [stats, setStats] = useState<UserStats | null>(null);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		apiClient<UserStats>("/api/users/me/stats", { token: "demo" })
-			.then(setStats)
-			.catch(console.error)
-			.finally(() => setLoading(false));
-	}, []);
+	const { data: stats, loading } = useAuthFetch<UserStats>("/api/users/me/stats");
 
 	if (loading) {
 		return (

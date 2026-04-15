@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { useAuthFetch } from "@/lib/use-api";
 
 interface Artifact {
 	id: string;
@@ -13,15 +12,7 @@ interface Artifact {
 }
 
 export default function InventoryPage() {
-	const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		apiClient<Artifact[]>("/api/users/me/artifacts", { token: "demo" })
-			.then(setArtifacts)
-			.catch(console.error)
-			.finally(() => setLoading(false));
-	}, []);
+	const { data: artifacts, loading } = useAuthFetch<Artifact[]>("/api/users/me/artifacts");
 
 	if (loading) {
 		return (
@@ -42,14 +33,14 @@ export default function InventoryPage() {
 				<h1 className="text-3xl font-bold text-white mb-2">Inventory</h1>
 				<p className="text-[#A1A1AA] mb-8">Artifacts collected from completed quests.</p>
 
-				{artifacts.length === 0 ? (
+				{(artifacts || []).length === 0 ? (
 					<div className="text-center py-20 border border-dashed border-[#2A2A2E] rounded-2xl">
 						<p className="text-[#A1A1AA] text-lg">No artifacts yet.</p>
 						<p className="text-[#A1A1AA]/60 text-sm mt-1">Complete quests to earn artifacts.</p>
 					</div>
 				) : (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{artifacts.map((artifact) => (
+						{(artifacts || []).map((artifact) => (
 							<div
 								key={artifact.id}
 								className="rounded-2xl border border-[#2A2A2E] bg-[#141416] p-5 hover:border-[#F59E0B]/50 transition-colors"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { useAuthMutate } from "@/lib/use-api";
 
 interface CourseForm {
 	title: string;
@@ -31,6 +31,7 @@ export default function AdminCoursesPage() {
 	const [form, setForm] = useState<CourseForm>(EMPTY_FORM);
 	const [saving, setSaving] = useState(false);
 	const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+	const mutate = useAuthMutate("admin");
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -41,11 +42,7 @@ export default function AdminCoursesPage() {
 			const body = Object.fromEntries(
 				Object.entries(form).filter(([, v]) => v !== ""),
 			);
-			await apiClient("/api/admin/courses", {
-				method: "POST",
-				body,
-				token: "admin-token",
-			});
+			await mutate("/api/admin/courses", { method: "POST", body });
 			setMessage({ type: "success", text: "Course created successfully!" });
 			setForm(EMPTY_FORM);
 		} catch (e) {

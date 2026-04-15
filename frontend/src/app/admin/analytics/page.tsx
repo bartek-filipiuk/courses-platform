@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { useState } from "react";
+import { useAuthMutate } from "@/lib/use-api";
 
 interface Analytics {
 	course_id: string;
@@ -16,13 +16,14 @@ export default function AdminAnalyticsPage() {
 	const [analytics, setAnalytics] = useState<Analytics | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const mutate = useAuthMutate("admin");
 
 	const loadAnalytics = async () => {
 		if (!courseId) return;
 		setLoading(true);
 		setError(null);
 		try {
-			const data = await apiClient<Analytics>(`/api/admin/analytics/${courseId}`, { token: "admin-token" });
+			const data = await mutate<Analytics>(`/api/admin/analytics/${courseId}`);
 			setAnalytics(data);
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Failed to load");

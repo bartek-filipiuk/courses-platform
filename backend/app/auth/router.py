@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import select
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +27,7 @@ from app.redis import blacklist_token
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-# Dev-only: generate JWT for any user (NEVER in production)
+# Dev-only: generate JWT for testing (NEVER in production)
 @router.get("/dev/token/{user_id}")
 async def dev_token(user_id: str, role: str = "student") -> dict:
     """DEV ONLY: Generate a JWT for testing. Disabled in production."""
@@ -34,6 +35,23 @@ async def dev_token(user_id: str, role: str = "student") -> dict:
         raise HTTPException(status_code=404, detail="Not found")
     token = create_access_token(data={"sub": user_id, "role": role, "email": f"{role}@ndqs.dev"})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.get("/dev/auto-token")
+async def dev_auto_token(
+    role: str = "student",
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """DEV ONLY: Auto-find first user with given role and return JWT."""
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+    from app.auth.models import User
+    result = await db.execute(select(User).where(User.role == role).limit(1))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"No {role} user found")
+    token = create_access_token(data={"sub": str(user.id), "role": user.role, "email": user.email})
+    return {"access_token": token, "user_id": str(user.id), "email": user.email, "token_type": "bearer"}
 
 
 class GenerateApiKeyRequest(BaseModel):

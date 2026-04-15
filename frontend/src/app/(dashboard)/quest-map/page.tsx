@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
 	ReactFlow,
@@ -14,7 +14,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import QuestNode from "@/components/quest-map/QuestNode";
-import { apiClient } from "@/lib/api-client";
+import { useAuthFetch } from "@/lib/use-api";
 
 interface QuestItem {
 	id: string;
@@ -33,20 +33,16 @@ const nodeTypes: NodeTypes = {
 export default function QuestMapPage() {
 	const searchParams = useSearchParams();
 	const courseId = searchParams.get("courseId");
-	const [quests, setQuests] = useState<QuestItem[]>([]);
-	const [loading, setLoading] = useState(true);
+	const { data: quests, loading } = useAuthFetch<QuestItem[]>(
+		`/api/courses/${courseId}/quests`,
+		{ skip: !courseId },
+	);
 	const [selectedQuest, setSelectedQuest] = useState<QuestItem | null>(null);
 
-	useEffect(() => {
-		if (!courseId) return;
-		apiClient<QuestItem[]>(`/api/courses/${courseId}/quests`, { token: "demo" })
-			.then(setQuests)
-			.catch(console.error)
-			.finally(() => setLoading(false));
-	}, [courseId]);
+	const questList = quests || [];
 
 	const { nodes, edges } = useMemo(() => {
-		const n: Node[] = quests.map((q, i) => ({
+		const n: Node[] = questList.map((q, i) => ({
 			id: q.id,
 			type: "quest",
 			position: { x: 250, y: i * 150 },
@@ -59,23 +55,23 @@ export default function QuestMapPage() {
 		}));
 
 		const e: Edge[] = [];
-		for (let i = 1; i < quests.length; i++) {
+		for (let i = 1; i < questList.length; i++) {
 			e.push({
-				id: `e-${quests[i - 1].id}-${quests[i].id}`,
-				source: quests[i - 1].id,
-				target: quests[i].id,
-				animated: quests[i].state === "AVAILABLE",
+				id: `e-${questList[i - 1].id}-${questList[i].id}`,
+				source: questList[i - 1].id,
+				target: questList[i].id,
+				animated: questList[i].state === "AVAILABLE",
 				style: { stroke: "#6366F1", strokeWidth: 2 },
 			});
 		}
 
 		return { nodes: n, edges: e };
-	}, [quests]);
+	}, [questList]);
 
 	const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-		const quest = quests.find((q) => q.id === node.id);
+		const quest = questList.find((q) => q.id === node.id);
 		setSelectedQuest(quest || null);
-	}, [quests]);
+	}, [questList]);
 
 	if (!courseId) {
 		return (

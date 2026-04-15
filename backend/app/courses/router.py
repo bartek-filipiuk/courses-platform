@@ -131,6 +131,11 @@ async def enroll(
     enrollment = Enrollment(user_id=user_id, course_id=course_id)
     db.add(enrollment)
     await db.commit()
+
+    # Initialize quest states for this user/course (FSM)
+    from app.quests.state_machine import initialize_quest_states
+    await initialize_quest_states(db, user_id, course_id)
+
     return {"user_id": str(user_id), "course_id": str(course_id), "status": "enrolled"}
 
 
