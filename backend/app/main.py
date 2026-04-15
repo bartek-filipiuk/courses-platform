@@ -3,6 +3,8 @@ import uuid
 
 import structlog
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
@@ -40,6 +42,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Sanitize validation errors in production to avoid leaking internal details."""
+    if settings.ENVIRONMENT == "production":
+        clean_errors = []
+        for error in exc.errors():
+            loc = error.get("loc", ())
+            field = ".".join(str(part) for part in loc if part != "body")
+            clean_errors.append({
+                "field": field or "unknown",
+                "message": error.get("msg", "Invalid value"),
+            })
+        return JSONResponse(status_code=422, content={"detail": clean_errors})
+
+    # In development, return full Pydantic error details for debugging
+    return JSONResponse(status_code=422, content={"detail": jsonable_encoder(exc.errors())})
 
 
 @app.exception_handler(Exception)
