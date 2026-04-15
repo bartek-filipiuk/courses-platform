@@ -123,30 +123,30 @@
 - [x] T5: LLM Judge (OpenRouter) — llm_service.py: budowanie promptu z quest criteria + failure states + student answer + deterministic results → structured JSON output. Pydantic walidacja response. Retry 3x z exponential backoff. Timeout 30s. Fallback message. (test → kod → verify)
 - [x] T6: Game Master response — po ewaluacji: zapis do submissions (z quality_scores), zapis do comms_log, aktualizacja quest_state (COMPLETED → mint artifact, FAILED_ATTEMPT → feedback), return narrative response (test → kod → verify)
 - [x] T7: Hint endpoint — `POST /api/quests/{id}/hint`, LLM generuje pytanie sokratyczne, sprawdzenie limitu hintów, dekrementacja completeness score (-1 per hint, min 1), zapis do comms_log (test → kod → verify)
-- [ ] T8: Admin: Game Master config — formularz persona (name, prompt, tone, model_id via OpenRouter), preview response z sample submission (test → kod → verify)
-- [ ] T9: Frontend: Submit UI — formularz submisji per quest type (text area, URL input, quiz radio buttons, command output paste). Loading state z animacją podczas ewaluacji LLM. (test → kod → verify)
-- [ ] T10: Frontend: Feedback display — narrative response od Game Mastera w terminal-style, pass/fail indicator, quality radar chart (jeśli pass) (test → kod → verify)
+- [x] T8: Admin: Game Master config — formularz persona (name, prompt, tone, model_id via OpenRouter), preview response z sample submission (test → kod → verify)
+- [x] T9: Frontend: Submit UI — formularz submisji per quest type (text area, URL input, quiz radio buttons, command output paste). Loading state z animacją podczas ewaluacji LLM. (test → kod → verify)
+- [x] T10: Frontend: Feedback display — narrative response od Game Mastera w terminal-style, pass/fail indicator, quality radar chart (jeśli pass) (test → kod → verify)
 
 ### Security (MANDATORY):
-- [ ] S1: Prompt injection protection — sanityzacja odpowiedzi kursanta przed wstrzyknięciem do LLM prompt. (PRD: threat model)
-- [ ] S2: Rate limiting na submit — max 5 submisji per quest per godzinę per user (Baseline #8)
-- [ ] S3: Rate limiting na hint — max 3 hinty per quest, max 10 hint requestów per godzinę (Baseline #8)
-- [ ] S4: XSS prevention — escape LLM response przed renderowaniem w UI. CSP headers. (Baseline #4)
-- [ ] S5: Input size limits — text_answer max 5000 znaków, URL max 500 znaków, command_output max 10000 znaków (Baseline #2)
-- [ ] S6: Test security: prompt injection testy z konkretnymi payloadami (PRD: threat model)
-- [ ] S7: Error exposure hardening — validation errors nie ujawniają DB schema. LLM timeout → fallback. (PRD: threat model)
-- [ ] S8: Evaluation replay protection — identyczny payload w 30min → cached result (Redis). (PRD: threat model)
+- [x] S1: Prompt injection protection — sanityzacja odpowiedzi kursanta przed wstrzyknięciem do LLM prompt. (PRD: threat model)
+- [x] S2: Rate limiting na submit — max 5 submisji per quest per godzinę per user (Baseline #8)
+- [x] S3: Rate limiting na hint — max 3 hinty per quest, max 10 hint requestów per godzinę (Baseline #8)
+- [x] S4: XSS prevention — escape LLM response przed renderowaniem w UI. CSP headers. (Baseline #4)
+- [x] S5: Input size limits — text_answer max 5000 znaków, URL max 500 znaków, command_output max 10000 znaków (Baseline #2)
+- [x] S6: Test security: prompt injection testy z konkretnymi payloadami (PRD: threat model)
+- [x] S7: Error exposure hardening — validation errors nie ujawniają DB schema. LLM timeout → fallback. (PRD: threat model)
+- [x] S8: Evaluation replay protection — identyczny payload w 30min → cached result (Redis). (PRD: threat model)
 
 ### Docs (MANDATORY):
-- [ ] Update docs/CHANGELOG.md
-- [ ] Update docs/API.md (submit, hint, evaluation endpoints)
-- [ ] Update docs/README.md (Evaluation pipeline architecture)
+- [x] Update docs/CHANGELOG.md
+- [x] Update docs/API.md (submit, hint, evaluation endpoints)
+- [x] Update docs/README.md (Evaluation pipeline architecture)
 
 ### Stage Completion (MANDATORY):
-- [ ] Self-check: zakres stage zgodny z PRD (US-7, US-8, US-10, US-17 pokryte)
-- [ ] Self-check: brak hardcoded secrets w kodzie
-- [ ] Self-check: testy zielone (funkcjonalne + security)
-- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+- [x] Self-check: zakres stage zgodny z PRD (US-7, US-8, US-10, US-17 pokryte)
+- [x] Self-check: brak hardcoded secrets w kodzie
+- [x] Self-check: testy zielone (funkcjonalne + security)
+- [x] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
 
 ---
 
