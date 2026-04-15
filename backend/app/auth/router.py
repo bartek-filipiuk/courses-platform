@@ -37,10 +37,12 @@ class GenerateApiKeyRequest(BaseModel):
 
 @router.get("/github/login")
 async def github_login() -> RedirectResponse:
-    params = urlencode({
-        "client_id": settings.GITHUB_CLIENT_ID,
-        "scope": "read:user user:email",
-    })
+    params = urlencode(
+        {
+            "client_id": settings.GITHUB_CLIENT_ID,
+            "scope": "read:user user:email",
+        }
+    )
     return RedirectResponse(
         url=f"https://github.com/login/oauth/authorize?{params}",
         status_code=302,
@@ -75,7 +77,7 @@ async def refresh_token(request: Request) -> dict:
     try:
         payload = decode_token(token, token_type="refresh")
     except TokenError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(status_code=401, detail="Invalid refresh token") from None
 
     user_id = payload["sub"]
     new_access = create_access_token(
@@ -91,7 +93,7 @@ async def refresh_token(request: Request) -> dict:
 
 
 @router.post("/logout")
-async def logout(token_data: dict = Depends(get_current_user_token)) -> dict:
+async def logout(_token_data: dict = Depends(get_current_user_token)) -> dict:
     # TODO: Add token to Redis blacklist with TTL = remaining JWT lifetime
     return {"message": "Logged out successfully"}
 
@@ -104,8 +106,7 @@ async def api_key_generate(
     body: GenerateApiKeyRequest,
     token_data: dict = Depends(get_current_user_token),
 ) -> dict:
-    result = generate_api_key(user_id=token_data["sub"], name=body.name)
-    return result
+    return generate_api_key(user_id=token_data["sub"], name=body.name)
 
 
 @router.get("/api-key/list")

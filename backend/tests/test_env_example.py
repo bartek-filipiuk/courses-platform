@@ -19,12 +19,12 @@ REQUIRED_VARS = [
 ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def env_example_path() -> Path:
     return ROOT_DIR / ".env.example"
 
 
-@pytest.fixture()
+@pytest.fixture
 def env_example_content(env_example_path: Path) -> str:
     assert env_example_path.exists(), ".env.example file must exist in project root"
     return env_example_path.read_text()
@@ -57,7 +57,7 @@ class TestEnvExample:
         variables = _parse_env_vars(env_example_content)
         for key, value in variables.items():
             if "SECRET" in key or "API_KEY" in key or "PASSWORD" in key:
-                assert value == "" or value.startswith("your-") or value.startswith("change-"), (
+                assert value == "" or value.startswith(("your-", "change-")), (
                     f"{key} should have a placeholder value, not a real secret: {value}"
                 )
 

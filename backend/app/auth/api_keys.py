@@ -7,7 +7,7 @@ when PostgreSQL is running.
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # In-memory store: key_hash -> {id, user_id, key_prefix, name, is_active, expires_at, created_at}
 _api_key_store: dict[str, dict] = {}
@@ -34,7 +34,7 @@ def generate_api_key(user_id: str, name: str, expires_at: datetime | None = None
         "name": name,
         "is_active": True,
         "expires_at": expires_at,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
     }
 
     return {
@@ -63,7 +63,7 @@ def list_user_keys(user_id: str) -> list[dict]:
 
 def revoke_key(key_id: str, user_id: str) -> bool:
     """Revoke an API key. Returns True if found and revoked."""
-    for key_hash, info in _api_key_store.items():
+    for info in _api_key_store.values():
         if info["id"] == key_id and info["user_id"] == user_id:
             info["is_active"] = False
             return True
@@ -81,7 +81,7 @@ def validate_api_key(raw_key: str) -> dict | None:
     if not info["is_active"]:
         return None
 
-    if info["expires_at"] and info["expires_at"] < datetime.now(timezone.utc):
+    if info["expires_at"] and info["expires_at"] < datetime.now(UTC):
         return None
 
     return {

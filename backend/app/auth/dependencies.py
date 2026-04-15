@@ -33,7 +33,7 @@ async def get_current_user_token(request: Request) -> dict:
     try:
         payload = decode_token(token, token_type="access")
     except TokenError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from None
 
     payload["auth_method"] = "jwt"
     return payload
