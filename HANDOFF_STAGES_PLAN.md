@@ -186,29 +186,29 @@
 **User Stories:** Powiązane z Look & Feel z PRD
 
 ### Taski:
-- [ ] T1: Landing page — publiczna strona `/` z hero section, CTA, Framer Motion (test → kod → verify)
-- [ ] T2: Glassmorphism i karty — backdrop-blur, subtle borders, hover glow (test → kod → verify)
-- [ ] T3: Page transitions — Framer Motion AnimatePresence (test → kod → verify)
-- [ ] T4: Skeleton loaders (test → kod → verify)
-- [ ] T5: Error states — 404, 500, 403, toast notifications (sonner) (test → kod → verify)
-- [ ] T6: Responsywność — mobile sidebar, responsive grids (test → kod → verify)
-- [ ] T7: Quest node animations — glow, transitions, particle effects (test → kod → verify)
-- [ ] T8: Dark mode consistency — WCAG AA, focus states (test → kod → verify)
+- [x] T1: Landing page — publiczna strona `/` z hero section, CTA, Framer Motion (test → kod → verify)
+- [x] T2: Glassmorphism i karty — backdrop-blur, subtle borders, hover glow (test → kod → verify)
+- [x] T3: Page transitions — Framer Motion AnimatePresence (test → kod → verify)
+- [x] T4: Skeleton loaders (test → kod → verify)
+- [x] T5: Error states — 404, 500, 403, toast notifications (sonner) (test → kod → verify)
+- [x] T6: Responsywność — mobile sidebar, responsive grids (test → kod → verify)
+- [x] T7: Quest node animations — glow, transitions, particle effects (test → kod → verify)
+- [x] T8: Dark mode consistency — WCAG AA, focus states (test → kod → verify)
 
 ### Security (MANDATORY):
-- [ ] S1: CSP audit na stronach z dynamic content (Baseline #6)
-- [ ] S2: Accessibility + security — WCAG AA (Baseline #6)
-- [ ] S3: Test security: scan nagłówków (Baseline #6)
+- [x] S1: CSP audit na stronach z dynamic content (Baseline #6)
+- [x] S2: Accessibility + security — WCAG AA (Baseline #6)
+- [x] S3: Test security: scan nagłówków (Baseline #6)
 
 ### Docs (MANDATORY):
-- [ ] Update docs/CHANGELOG.md
-- [ ] Update docs/README.md
+- [x] Update docs/CHANGELOG.md
+- [x] Update docs/README.md
 
 ### Stage Completion (MANDATORY):
-- [ ] Self-check: Look & Feel z PRD pokryte
-- [ ] Self-check: brak hardcoded secrets
-- [ ] Self-check: testy zielone
-- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy → [x]
+- [x] Self-check: Look & Feel z PRD pokryte
+- [x] Self-check: brak hardcoded secrets
+- [x] Self-check: testy zielone
+- [x] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy → [x]
 
 ---
 
