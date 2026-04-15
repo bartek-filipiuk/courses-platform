@@ -47,10 +47,10 @@
 **User Stories:** US-2 (katalog kursów), US-3 (enrollment), US-4 (Starter Pack), US-14 (CRUD kursów admin)
 
 ### Taski:
-- [ ] T1: Model danych — migracja: tabele `courses`, `enrollments` (test → kod → verify)
-- [ ] T2: Backend CRUD kursów — `POST /api/admin/courses`, `PUT /api/admin/courses/{id}`, `GET /api/courses`, `GET /api/courses/{id}` z auth admin (test → kod → verify)
-- [ ] T3: Enrollment endpoint — `POST /api/courses/{id}/enroll`, tworzenie wpisu w enrollments (test → kod → verify)
-- [ ] T4: Starter Pack generator — `GET /api/courses/{id}/starter-pack`, generowanie ZIP w locie (CLAUDE.md z system promptem, .env.example, README.md) (test → kod → verify)
+- [x] T1: Model danych — migracja: tabele `courses`, `enrollments` (test → kod → verify)
+- [x] T2: Backend CRUD kursów — `POST /api/admin/courses`, `PUT /api/admin/courses/{id}`, `GET /api/courses`, `GET /api/courses/{id}` z auth admin (test → kod → verify)
+- [x] T3: Enrollment endpoint — `POST /api/courses/{id}/enroll`, tworzenie wpisu w enrollments (test → kod → verify)
+- [x] T4: Starter Pack generator — `GET /api/courses/{id}/starter-pack`, generowanie ZIP w locie (CLAUDE.md z system promptem, .env.example, README.md) (test → kod → verify)
 - [ ] T5: Frontend: Katalog kursów — strona `/missions` z kartami kursów (Mission Briefs), filtrowanie, dark modern design, Framer Motion animations (test → kod → verify)
 - [ ] T6: Frontend: Strona kursu — `/missions/[courseId]` z opisem, przyciskiem "Przyjmij Misję" (enroll), "Pobierz Starter Pack" (test → kod → verify)
 - [ ] T7: Frontend: Admin CRUD — `/admin/courses` lista + formularz tworzenia/edycji kursu (test → kod → verify)
