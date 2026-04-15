@@ -6,7 +6,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 
-@pytest.fixture()
+@pytest.fixture
 async def client():
     from app.main import app
 
@@ -17,7 +17,7 @@ async def client():
         yield ac
 
 
-@pytest.fixture()
+@pytest.fixture
 def auth_headers() -> dict:
     from app.auth.jwt import create_access_token
 
@@ -38,7 +38,16 @@ class TestApiKeyModel:
         from app.auth.models import ApiKey
 
         column_names = {c.name for c in ApiKey.__table__.columns}
-        required = {"id", "user_id", "key_hash", "key_prefix", "name", "expires_at", "created_at", "is_active"}
+        required = {
+            "id",
+            "user_id",
+            "key_hash",
+            "key_prefix",
+            "name",
+            "expires_at",
+            "created_at",
+            "is_active",
+        }
         assert required.issubset(column_names), f"Missing columns: {required - column_names}"
 
     def test_api_key_table_name(self) -> None:

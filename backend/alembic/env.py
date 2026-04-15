@@ -6,11 +6,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-from app.config import settings
-from app.database import Base
-
 # Import all models so Alembic can detect them
 from app.auth.models import User  # noqa: F401
+from app.config import settings
+from app.database import Base
 
 config = context.config
 

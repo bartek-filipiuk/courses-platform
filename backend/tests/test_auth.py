@@ -1,16 +1,13 @@
 """Tests for auth backend — JWT, OAuth callback, refresh rotation, logout."""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch
+from datetime import timedelta
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.config import settings
 
-
-@pytest.fixture()
+@pytest.fixture
 async def client():
     from app.main import app
 
@@ -25,18 +22,14 @@ class TestJWTUtils:
     def test_create_access_token(self) -> None:
         from app.auth.jwt import create_access_token
 
-        token = create_access_token(
-            data={"sub": str(uuid.uuid4()), "role": "student"}
-        )
+        token = create_access_token(data={"sub": str(uuid.uuid4()), "role": "student"})
         assert isinstance(token, str)
         assert len(token) > 0
 
     def test_create_refresh_token(self) -> None:
         from app.auth.jwt import create_refresh_token
 
-        token = create_refresh_token(
-            data={"sub": str(uuid.uuid4())}
-        )
+        token = create_refresh_token(data={"sub": str(uuid.uuid4())})
         assert isinstance(token, str)
         assert len(token) > 0
 
@@ -60,14 +53,12 @@ class TestJWTUtils:
     def test_access_token_has_expiry(self) -> None:
         from app.auth.jwt import create_access_token, decode_token
 
-        token = create_access_token(
-            data={"sub": str(uuid.uuid4()), "role": "student"}
-        )
+        token = create_access_token(data={"sub": str(uuid.uuid4()), "role": "student"})
         payload = decode_token(token, token_type="access")
         assert "exp" in payload
 
     def test_expired_token_raises(self) -> None:
-        from app.auth.jwt import create_access_token, decode_token, TokenError
+        from app.auth.jwt import TokenError, create_access_token, decode_token
 
         token = create_access_token(
             data={"sub": str(uuid.uuid4()), "role": "student"},
@@ -77,7 +68,7 @@ class TestJWTUtils:
             decode_token(token, token_type="access")
 
     def test_invalid_token_raises(self) -> None:
-        from app.auth.jwt import decode_token, TokenError
+        from app.auth.jwt import TokenError, decode_token
 
         with pytest.raises(TokenError):
             decode_token("invalid.token.here", token_type="access")
@@ -131,9 +122,7 @@ class TestAuthEndpoints:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_refresh_with_valid_token_returns_new_tokens(
-        self, client: AsyncClient
-    ) -> None:
+    async def test_refresh_with_valid_token_returns_new_tokens(self, client: AsyncClient) -> None:
         from app.auth.jwt import create_refresh_token
 
         user_id = str(uuid.uuid4())

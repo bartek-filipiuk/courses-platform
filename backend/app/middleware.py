@@ -21,10 +21,7 @@ class CorrelationIdMiddleware:
 
         # Extract or generate correlation ID from request headers
         headers = dict(scope.get("headers", []))
-        correlation_id = (
-            headers.get(b"x-correlation-id", b"").decode()
-            or str(uuid.uuid4())
-        )
+        correlation_id = headers.get(b"x-correlation-id", b"").decode() or str(uuid.uuid4())
 
         # Bind to structlog context
         structlog.contextvars.clear_contextvars()
@@ -105,15 +102,19 @@ class OriginCheckMiddleware:
             response_headers = [
                 (b"content-type", b"application/json"),
             ]
-            await send({
-                "type": "http.response.start",
-                "status": 403,
-                "headers": response_headers,
-            })
-            await send({
-                "type": "http.response.body",
-                "body": b'{"detail":"Origin not allowed"}',
-            })
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 403,
+                    "headers": response_headers,
+                }
+            )
+            await send(
+                {
+                    "type": "http.response.body",
+                    "body": b'{"detail":"Origin not allowed"}',
+                }
+            )
             return
 
         await self.app(scope, receive, send)

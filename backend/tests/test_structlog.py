@@ -1,13 +1,12 @@
 """Tests for structlog setup — JSON logging, correlation ID middleware."""
 
-import json
 import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 
-@pytest.fixture()
+@pytest.fixture
 async def client():
     from app.main import app
 

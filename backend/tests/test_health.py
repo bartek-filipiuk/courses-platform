@@ -7,7 +7,7 @@ from app.config import settings
 from app.main import app
 
 
-@pytest.fixture()
+@pytest.fixture
 async def client():
     async with AsyncClient(
         transport=ASGITransport(app=app, raise_app_exceptions=False),

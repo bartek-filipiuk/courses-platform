@@ -8,12 +8,12 @@ import yaml
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 
 
-@pytest.fixture()
+@pytest.fixture
 def compose_path() -> Path:
     return ROOT_DIR / "docker-compose.yml"
 
 
-@pytest.fixture()
+@pytest.fixture
 def compose_config(compose_path: Path) -> dict:
     assert compose_path.exists(), "docker-compose.yml must exist in project root"
     return yaml.safe_load(compose_path.read_text())

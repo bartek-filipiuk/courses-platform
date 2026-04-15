@@ -2,13 +2,12 @@
 
 import hashlib
 import uuid
-from datetime import timedelta
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 
-@pytest.fixture()
+@pytest.fixture
 async def client():
     from app.main import app
 
@@ -19,7 +18,7 @@ async def client():
         yield ac
 
 
-@pytest.fixture()
+@pytest.fixture
 def auth_headers() -> dict:
     from app.auth.jwt import create_access_token
 

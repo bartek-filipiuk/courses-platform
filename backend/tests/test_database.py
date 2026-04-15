@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -31,7 +29,17 @@ class TestUserModel:
         from app.auth.models import User
 
         column_names = {c.name for c in User.__table__.columns}
-        required = {"id", "email", "display_name", "avatar_url", "provider", "provider_id", "role", "created_at", "updated_at"}
+        required = {
+            "id",
+            "email",
+            "display_name",
+            "avatar_url",
+            "provider",
+            "provider_id",
+            "role",
+            "created_at",
+            "updated_at",
+        }
         assert required.issubset(column_names), f"Missing columns: {required - column_names}"
 
     def test_user_role_default_is_student(self) -> None:
