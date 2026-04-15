@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
 	{ href: "/missions", label: "Missions", icon: "🎯" },
-	{ href: "/(dashboard)/quest-map", label: "Quest Map", icon: "🗺️" },
-	{ href: "/(dashboard)/inventory", label: "Inventory", icon: "🏆" },
-	{ href: "/(dashboard)/comms", label: "Comms Log", icon: "📡" },
-	{ href: "/(dashboard)/profile", label: "Profile", icon: "📊" },
+	{ href: "/quest-map", label: "Quest Map", icon: "🗺️" },
+	{ href: "/inventory", label: "Inventory", icon: "🏆" },
+	{ href: "/comms", label: "Comms Log", icon: "📡" },
+	{ href: "/profile", label: "Profile", icon: "📊" },
 ];
 
 const ADMIN_ITEMS = [
