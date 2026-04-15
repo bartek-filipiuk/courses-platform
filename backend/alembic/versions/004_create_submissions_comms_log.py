@@ -19,12 +19,6 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    message_type_enum = sa.Enum(
-        "briefing", "evaluation", "hint", "system",
-        name="message_type",
-    )
-    message_type_enum.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "submissions",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -49,11 +43,7 @@ def upgrade() -> None:
         sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("course_id", UUID(as_uuid=True), sa.ForeignKey("courses.id", ondelete="CASCADE"), nullable=False),
         sa.Column("quest_id", UUID(as_uuid=True), sa.ForeignKey("quests.id", ondelete="SET NULL"), nullable=True),
-        sa.Column(
-            "message_type",
-            sa.Enum("briefing", "evaluation", "hint", "system", name="message_type", create_type=False),
-            nullable=False,
-        ),
+        sa.Column("message_type", sa.String(20), nullable=False),
         sa.Column("content", sa.Text, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
@@ -64,4 +54,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("comms_log")
     op.drop_table("submissions")
-    sa.Enum(name="message_type").drop(op.get_bind(), checkfirst=True)

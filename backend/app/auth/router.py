@@ -26,6 +26,16 @@ from app.redis import blacklist_token
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+# Dev-only: generate JWT for any user (NEVER in production)
+@router.get("/dev/token/{user_id}")
+async def dev_token(user_id: str, role: str = "student") -> dict:
+    """DEV ONLY: Generate a JWT for testing. Disabled in production."""
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(status_code=404, detail="Not found")
+    token = create_access_token(data={"sub": user_id, "role": role, "email": f"{role}@ndqs.dev"})
+    return {"access_token": token, "token_type": "bearer"}
+
+
 class GenerateApiKeyRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
 

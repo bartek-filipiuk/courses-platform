@@ -19,9 +19,6 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    user_role = sa.Enum("student", "admin", name="user_role")
-    user_role.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "users",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -32,7 +29,7 @@ def upgrade() -> None:
         sa.Column("provider_id", sa.String(255), nullable=False),
         sa.Column(
             "role",
-            sa.Enum("student", "admin", name="user_role", create_type=False),
+            sa.String(20),
             nullable=False,
             server_default="student",
         ),
@@ -58,5 +55,3 @@ def downgrade() -> None:
     op.drop_index("ix_users_provider_id", table_name="users")
     op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")
-
-    sa.Enum("student", "admin", name="user_role").drop(op.get_bind(), checkfirst=True)

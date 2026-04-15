@@ -76,7 +76,6 @@ async def update_course(
 
 @router.get("/api/courses", response_model=list[CourseResponse])
 async def list_courses(
-    _token_data: dict = Depends(get_current_user_token),
     db: AsyncSession = Depends(get_db),
 ) -> list[Course]:
     result = await db.execute(

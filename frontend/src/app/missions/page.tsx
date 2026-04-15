@@ -11,7 +11,7 @@ export default function MissionsPage() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		apiClient<Course[]>("/api/courses", { token: "demo" })
+		apiClient<Course[]>("/api/courses")
 			.then(setCourses)
 			.catch((e) => setError(e.message))
 			.finally(() => setLoading(false));

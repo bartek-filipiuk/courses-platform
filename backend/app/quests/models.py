@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -29,9 +29,7 @@ class Quest(Base):
     evaluation_criteria: Mapped[dict] = mapped_column(JSONB, server_default="{}")
     failure_states: Mapped[list] = mapped_column(JSONB, server_default="[]")
     max_hints: Mapped[int] = mapped_column(Integer, server_default="3")
-    required_artifact_ids: Mapped[list[uuid.UUID]] = mapped_column(
-        ARRAY(UUID(as_uuid=True)), server_default="{}"
-    )
+    required_artifact_ids: Mapped[list] = mapped_column(JSONB, server_default="[]")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

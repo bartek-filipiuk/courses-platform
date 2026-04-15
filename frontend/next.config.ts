@@ -25,7 +25,7 @@ const securityHeaders = [
 			"style-src 'self' 'unsafe-inline'",
 			"img-src 'self' data: https:",
 			"font-src 'self' https://fonts.gstatic.com",
-			"connect-src 'self' http://localhost:8000",
+			"connect-src 'self' http://localhost:8000 http://localhost:8001",
 			"frame-ancestors 'none'",
 		].join("; "),
 	},
