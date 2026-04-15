@@ -217,32 +217,32 @@
 **User Stories:** Warstwa jakości i production-readiness.
 
 ### Taski:
-- [ ] T1: Smoke testy e2e — Playwright (test → kod → verify)
-- [ ] T2: Security audit — OWASP Top 10, secrets scan (test → kod → verify)
-- [ ] T3: Code review i refactor (test → kod → verify)
-- [ ] T4: Performance audit — Lighthouse, API load test, DB queries (test → kod → verify)
-- [ ] T5: Dokumentacja finalna — SECURITY.md, ARCHITECTURE.md (test → kod → verify)
-- [ ] T6: Deployment prep — Dockerfile, docker-compose.prod.yml, Caddyfile (test → kod → verify)
-- [ ] T7: Health checks i monitoring (test → kod → verify)
-- [ ] T8: docs/RUNBOOK.md (test → kod → verify)
+- [x] T1: Smoke testy e2e — Playwright (test → kod → verify)
+- [x] T2: Security audit — OWASP Top 10, secrets scan (test → kod → verify)
+- [x] T3: Code review i refactor (test → kod → verify)
+- [x] T4: Performance audit — Lighthouse, API load test, DB queries (test → kod → verify)
+- [x] T5: Dokumentacja finalna — SECURITY.md, ARCHITECTURE.md (test → kod → verify)
+- [x] T6: Deployment prep — Dockerfile, docker-compose.prod.yml, Caddyfile (test → kod → verify)
+- [x] T7: Health checks i monitoring (test → kod → verify)
+- [x] T8: docs/RUNBOOK.md (test → kod → verify)
 
 ### Security (MANDATORY):
-- [ ] S1: Pełny security scan (PRD: threat model)
-- [ ] S2: Penetration test (Baseline #1-9)
-- [ ] S3: Secrets scan (Baseline #5)
-- [ ] S4: CORS final check (Baseline #6)
-- [ ] S5: Smoke test security (Baseline #1, #2, #8)
+- [x] S1: Pełny security scan (PRD: threat model)
+- [x] S2: Penetration test (Baseline #1-9)
+- [x] S3: Secrets scan (Baseline #5)
+- [x] S4: CORS final check (Baseline #6)
+- [x] S5: Smoke test security (Baseline #1, #2, #8)
 
 ### Docs (MANDATORY):
-- [ ] Create docs/SECURITY.md
-- [ ] Create docs/ARCHITECTURE.md
-- [ ] Create docs/PERFORMANCE.md
-- [ ] Create docs/RUNBOOK.md
-- [ ] Final update docs/CHANGELOG.md, API.md, README.md
+- [x] Create docs/SECURITY.md
+- [x] Create docs/ARCHITECTURE.md
+- [x] Create docs/PERFORMANCE.md
+- [x] Create docs/RUNBOOK.md
+- [x] Final update docs/CHANGELOG.md, API.md, README.md
 
 ### Stage Completion (MANDATORY):
-- [ ] Self-check: WSZYSTKIE US z PRD pokryte
-- [ ] Self-check: brak hardcoded secrets
-- [ ] Self-check: testy zielone (funkcjonalne + security + e2e)
-- [ ] Self-check: docs aktualne
-- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy → [x]
+- [x] Self-check: WSZYSTKIE US z PRD pokryte
+- [x] Self-check: brak hardcoded secrets
+- [x] Self-check: testy zielone (funkcjonalne + security + e2e)
+- [x] Self-check: docs aktualne
+- [x] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy → [x]
