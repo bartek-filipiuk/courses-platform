@@ -86,27 +86,27 @@
 - [x] T3: Quest API — `GET /api/quests/{id}/briefing`, `GET /api/quests/{id}/status`, `GET /api/courses/{id}/quests` (lista questów z ich stanami per user) (test → kod → verify)
 - [x] T4: Artifact system — po COMPLETED: mint artefaktu (HMAC SHA256 signature z user_id + artifact_id + secret), zapis do user_artifacts. Po mint: sprawdzenie "które questy mają ten artefakt w required_artifact_ids?" → jeśli user ma WSZYSTKIE required → quest → AVAILABLE. (test → kod → verify)
 - [x] T5: Admin CRUD questów — `POST /api/admin/quests`, `PUT /api/admin/quests/{id}`, pola: briefing, evaluation_type, evaluation_criteria, failure_states, required_artifacts, reward_artifact (test → kod → verify)
-- [ ] T6: Frontend: Quest Map — React Flow z custom nodes (stany: LOCKED/AVAILABLE/IN_PROGRESS/COMPLETED/FAILED_ATTEMPT), animated edges, minimap, zoom/pan (test → kod → verify)
-- [ ] T7: Frontend: Quest Detail Panel — slide-in z prawej: briefing (terminal style), objectives, submissions history, status (test → kod → verify)
-- [ ] T8: Frontend: Inventory — panel artefaktów kursanta, lista z nazwą fabularną i questem źródłowym (test → kod → verify)
-- [ ] T9: Frontend: Admin Quest editor — formularz z zakładkami (Fabuła, Techniczne, Kryteria, Zależności) + read-only React Flow preview mapy (test → kod → verify)
+- [x] T6: Frontend: Quest Map — React Flow z custom nodes (stany: LOCKED/AVAILABLE/IN_PROGRESS/COMPLETED/FAILED_ATTEMPT), animated edges, minimap, zoom/pan (test → kod → verify)
+- [x] T7: Frontend: Quest Detail Panel — slide-in z prawej: briefing (terminal style), objectives, submissions history, status (test → kod → verify)
+- [x] T8: Frontend: Inventory — panel artefaktów kursanta, lista z nazwą fabularną i questem źródłowym (test → kod → verify)
+- [x] T9: Frontend: Admin Quest editor — formularz z zakładkami (Fabuła, Techniczne, Kryteria, Zależności) + read-only React Flow preview mapy (test → kod → verify)
 
 ### Security (MANDATORY):
-- [ ] S1: Quest access control — kursant widzi briefing tylko dla AVAILABLE/IN_PROGRESS/COMPLETED questów. LOCKED = 403 (Baseline #1)
-- [ ] S2: Walidacja quest CRUD — Pydantic: briefing max 10000 znaków, failure_states jako validowany JSONB, evaluation_criteria sanityzowane (Baseline #2)
-- [ ] S3: Anti-tamper na artefaktach — artefakty generowane server-side z signed hash, user nie może podrobić artefaktu (PRD: threat model)
-- [ ] S4: Test security: próba GET /api/quests/{locked_quest}/briefing → 403 (Baseline #1)
+- [x] S1: Quest access control — kursant widzi briefing tylko dla AVAILABLE/IN_PROGRESS/COMPLETED questów. LOCKED = 403 (Baseline #1)
+- [x] S2: Walidacja quest CRUD — Pydantic: briefing max 10000 znaków, failure_states jako validowany JSONB, evaluation_criteria sanityzowane (Baseline #2)
+- [x] S3: Anti-tamper na artefaktach — artefakty generowane server-side z signed hash, user nie może podrobić artefaktu (PRD: threat model)
+- [x] S4: Test security: próba GET /api/quests/{locked_quest}/briefing → 403 (Baseline #1)
 
 ### Docs (MANDATORY):
-- [ ] Update docs/CHANGELOG.md
-- [ ] Update docs/API.md (quest endpoints, artifact endpoints)
-- [ ] Update docs/README.md (Quest Map architecture)
+- [x] Update docs/CHANGELOG.md
+- [x] Update docs/API.md (quest endpoints, artifact endpoints)
+- [x] Update docs/README.md (Quest Map architecture)
 
 ### Stage Completion (MANDATORY):
-- [ ] Self-check: zakres stage zgodny z PRD (US-5, US-6, US-9, US-15, US-16, US-18 pokryte)
-- [ ] Self-check: brak hardcoded secrets w kodzie
-- [ ] Self-check: testy zielone (funkcjonalne + security)
-- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+- [x] Self-check: zakres stage zgodny z PRD (US-5, US-6, US-9, US-15, US-16, US-18 pokryte)
+- [x] Self-check: brak hardcoded secrets w kodzie
+- [x] Self-check: testy zielone (funkcjonalne + security)
+- [x] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
 
 ---
 
