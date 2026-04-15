@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 
 from app.auth.router import router as auth_router
 from app.courses.router import router as courses_router
+from app.quests.router import router as quests_router
 from app.config import settings
 from app.logging import setup_logging
 from app.middleware import CorrelationIdMiddleware, OriginCheckMiddleware, SecurityHeadersMiddleware
@@ -99,6 +100,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 app.include_router(auth_router)
 app.include_router(courses_router)
+app.include_router(quests_router)
 
 
 @app.get("/api/health")

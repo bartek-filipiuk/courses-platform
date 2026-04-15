@@ -76,4 +76,173 @@
 
 ---
 
-## Stage 2+ content unchanged — see full file in repo
+## Stage 3: Quest Engine (FSM + Artefakty)
+**Cel:** Serce platformy — questy, maszyna stanów, artefakty (jedyny mechanizm unlock).
+**User Stories:** US-5 (Quest Map), US-6 (Briefing), US-9 (Artefakty/Inventory), US-15 (CRUD questów), US-16 (Artefakty admin), US-18 (podgląd quest mapy)
+
+### Taski:
+- [x] T1: Model danych — migracja: tabele `quests` (z `required_artifact_ids UUID[]`), `quest_states`, `artifact_definitions` (template per quest, 1:1), `user_artifacts` (instancja per user, z `signature` HMAC). BEZ tabeli `quest_dependencies` — unlock wyłącznie przez artefakty. (test → kod → verify)
+- [x] T2: Quest FSM — state_machine.py: przejścia LOCKED→AVAILABLE→IN_PROGRESS→EVALUATING→COMPLETED/FAILED_ATTEMPT. Logika unlock: quest jest AVAILABLE gdy user ma WSZYSTKIE artefakty z `required_artifact_ids`. Pierwszy quest kursu (bez required_artifacts) → AVAILABLE od razu po enrollment. (test → kod → verify)
+- [x] T3: Quest API — `GET /api/quests/{id}/briefing`, `GET /api/quests/{id}/status`, `GET /api/courses/{id}/quests` (lista questów z ich stanami per user) (test → kod → verify)
+- [x] T4: Artifact system — po COMPLETED: mint artefaktu (HMAC SHA256 signature z user_id + artifact_id + secret), zapis do user_artifacts. Po mint: sprawdzenie "które questy mają ten artefakt w required_artifact_ids?" → jeśli user ma WSZYSTKIE required → quest → AVAILABLE. (test → kod → verify)
+- [x] T5: Admin CRUD questów — `POST /api/admin/quests`, `PUT /api/admin/quests/{id}`, pola: briefing, evaluation_type, evaluation_criteria, failure_states, required_artifacts, reward_artifact (test → kod → verify)
+- [ ] T6: Frontend: Quest Map — React Flow z custom nodes (stany: LOCKED/AVAILABLE/IN_PROGRESS/COMPLETED/FAILED_ATTEMPT), animated edges, minimap, zoom/pan (test → kod → verify)
+- [ ] T7: Frontend: Quest Detail Panel — slide-in z prawej: briefing (terminal style), objectives, submissions history, status (test → kod → verify)
+- [ ] T8: Frontend: Inventory — panel artefaktów kursanta, lista z nazwą fabularną i questem źródłowym (test → kod → verify)
+- [ ] T9: Frontend: Admin Quest editor — formularz z zakładkami (Fabuła, Techniczne, Kryteria, Zależności) + read-only React Flow preview mapy (test → kod → verify)
+
+### Security (MANDATORY):
+- [ ] S1: Quest access control — kursant widzi briefing tylko dla AVAILABLE/IN_PROGRESS/COMPLETED questów. LOCKED = 403 (Baseline #1)
+- [ ] S2: Walidacja quest CRUD — Pydantic: briefing max 10000 znaków, failure_states jako validowany JSONB, evaluation_criteria sanityzowane (Baseline #2)
+- [ ] S3: Anti-tamper na artefaktach — artefakty generowane server-side z signed hash, user nie może podrobić artefaktu (PRD: threat model)
+- [ ] S4: Test security: próba GET /api/quests/{locked_quest}/briefing → 403 (Baseline #1)
+
+### Docs (MANDATORY):
+- [ ] Update docs/CHANGELOG.md
+- [ ] Update docs/API.md (quest endpoints, artifact endpoints)
+- [ ] Update docs/README.md (Quest Map architecture)
+
+### Stage Completion (MANDATORY):
+- [ ] Self-check: zakres stage zgodny z PRD (US-5, US-6, US-9, US-15, US-16, US-18 pokryte)
+- [ ] Self-check: brak hardcoded secrets w kodzie
+- [ ] Self-check: testy zielone (funkcjonalne + security)
+- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+
+---
+
+## Stage 4: Silnik Ewaluacyjny
+**Cel:** Pipeline ewaluacji odpowiedzi kursanta — walidacja, weryfikacja (deterministyczna + LLM Judge), Game Master feedback.
+**User Stories:** US-7 (Submit), US-8 (Ewaluacja i feedback), US-10 (Hint), US-17 (Game Master config)
+
+### Taski:
+- [ ] T0: OpenRouter integration setup — API key w .env, httpx AsyncClient wrapper (`app/evaluation/openrouter_client.py`), test connectivity, fallback model config per kurs, structured JSON response format (test → kod → verify)
+- [ ] T1: Model danych — migracja: tabela `submissions` (z `quality_scores JSONB`), `comms_log` (z `message_type` enum: briefing/evaluation/hint/system) (test → kod → verify)
+- [ ] T2: Submit endpoint — `POST /api/quests/{id}/submit`, payload walidowany dynamicznie per quest evaluation_type (text_answer, url_check, quiz, command_output). Pydantic discriminated union. (test → kod → verify)
+- [ ] T3: Evaluation pipeline — orchestrator.py: sanityzacja → deterministic checks (jeśli dotyczy) → LLM Judge (jeśli dotyczy) → result (pass/fail + narrative response). Quiz = deterministic only, text_answer = LLM only, url_check/command_output = deterministic + LLM. (test → kod → verify)
+- [ ] T4: Deterministic evaluator — quiz (key matching, case-insensitive), url_check (httpx GET/POST → status/body check, timeout 10s), command_output (regex/pattern matching z evaluation_criteria) (test → kod → verify)
+- [ ] T5: LLM Judge (OpenRouter) — llm_service.py: budowanie promptu z quest criteria + failure states + student answer + deterministic results → structured JSON output. Pydantic walidacja response. Retry 3x z exponential backoff. Timeout 30s. Fallback message. (test → kod → verify)
+- [ ] T6: Game Master response — po ewaluacji: zapis do submissions (z quality_scores), zapis do comms_log, aktualizacja quest_state (COMPLETED → mint artifact, FAILED_ATTEMPT → feedback), return narrative response (test → kod → verify)
+- [ ] T7: Hint endpoint — `POST /api/quests/{id}/hint`, LLM generuje pytanie sokratyczne, sprawdzenie limitu hintów, dekrementacja completeness score (-1 per hint, min 1), zapis do comms_log (test → kod → verify)
+- [ ] T8: Admin: Game Master config — formularz persona (name, prompt, tone, model_id via OpenRouter), preview response z sample submission (test → kod → verify)
+- [ ] T9: Frontend: Submit UI — formularz submisji per quest type (text area, URL input, quiz radio buttons, command output paste). Loading state z animacją podczas ewaluacji LLM. (test → kod → verify)
+- [ ] T10: Frontend: Feedback display — narrative response od Game Mastera w terminal-style, pass/fail indicator, quality radar chart (jeśli pass) (test → kod → verify)
+
+### Security (MANDATORY):
+- [ ] S1: Prompt injection protection — sanityzacja odpowiedzi kursanta przed wstrzyknięciem do LLM prompt. (PRD: threat model)
+- [ ] S2: Rate limiting na submit — max 5 submisji per quest per godzinę per user (Baseline #8)
+- [ ] S3: Rate limiting na hint — max 3 hinty per quest, max 10 hint requestów per godzinę (Baseline #8)
+- [ ] S4: XSS prevention — escape LLM response przed renderowaniem w UI. CSP headers. (Baseline #4)
+- [ ] S5: Input size limits — text_answer max 5000 znaków, URL max 500 znaków, command_output max 10000 znaków (Baseline #2)
+- [ ] S6: Test security: prompt injection testy z konkretnymi payloadami (PRD: threat model)
+- [ ] S7: Error exposure hardening — validation errors nie ujawniają DB schema. LLM timeout → fallback. (PRD: threat model)
+- [ ] S8: Evaluation replay protection — identyczny payload w 30min → cached result (Redis). (PRD: threat model)
+
+### Docs (MANDATORY):
+- [ ] Update docs/CHANGELOG.md
+- [ ] Update docs/API.md (submit, hint, evaluation endpoints)
+- [ ] Update docs/README.md (Evaluation pipeline architecture)
+
+### Stage Completion (MANDATORY):
+- [ ] Self-check: zakres stage zgodny z PRD (US-7, US-8, US-10, US-17 pokryte)
+- [ ] Self-check: brak hardcoded secrets w kodzie
+- [ ] Self-check: testy zielone (funkcjonalne + security)
+- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+
+---
+
+## Stage 5: Comms Log, Statystyki i Metryki
+**Cel:** Historia komunikacji, profil kursanta ze statystykami, basic analytics dla admina.
+**User Stories:** US-11 (Comms Log), US-13 (Profil i statystyki), US-19 (Metryki kursu)
+
+### Taski:
+- [ ] T1: Comms Log API — `GET /api/courses/{id}/comms-log` (paginowane max 100/page, filtry: quest_id, message_type, date_start, date_end), polling-friendly (test → kod → verify)
+- [ ] T2: Statistics API — `GET /api/users/me/stats` (test → kod → verify)
+- [ ] T3: Admin Analytics API — `GET /api/admin/analytics/{course_id}` (test → kod → verify)
+- [ ] T4: Frontend: Comms Log — `/comms` widok terminalowy (test → kod → verify)
+- [ ] T5: Frontend: Profil i statystyki — `/profile` z dashboardem (test → kod → verify)
+- [ ] T6: Frontend: Admin Analytics — `/admin/analytics` z wykresami (test → kod → verify)
+
+### Security (MANDATORY):
+- [ ] S1: Data isolation — kursant widzi TYLKO swoje dane (Baseline #1)
+- [ ] S2: Pagination limits — max 100 records per page (Baseline #8)
+- [ ] S3: Test security: data isolation test (Baseline #1)
+- [ ] S4: Security event logging (Baseline #9)
+
+### Docs (MANDATORY):
+- [ ] Update docs/CHANGELOG.md
+- [ ] Update docs/API.md
+- [ ] Update docs/README.md
+
+### Stage Completion (MANDATORY):
+- [ ] Self-check: zakres stage zgodny z PRD (US-11, US-13, US-19 pokryte)
+- [ ] Self-check: brak hardcoded secrets w kodzie
+- [ ] Self-check: testy zielone (funkcjonalne + security)
+- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+
+---
+
+## Stage 6: UX Polish i Landing Page
+**Cel:** Dopracowanie wizualne, landing page, responsywność, micro-interactions, skeleton loaders, error states.
+**User Stories:** Powiązane z Look & Feel z PRD
+
+### Taski:
+- [ ] T1: Landing page — publiczna strona `/` z hero section, CTA, Framer Motion (test → kod → verify)
+- [ ] T2: Glassmorphism i karty — backdrop-blur, subtle borders, hover glow (test → kod → verify)
+- [ ] T3: Page transitions — Framer Motion AnimatePresence (test → kod → verify)
+- [ ] T4: Skeleton loaders (test → kod → verify)
+- [ ] T5: Error states — 404, 500, 403, toast notifications (sonner) (test → kod → verify)
+- [ ] T6: Responsywność — mobile sidebar, responsive grids (test → kod → verify)
+- [ ] T7: Quest node animations — glow, transitions, particle effects (test → kod → verify)
+- [ ] T8: Dark mode consistency — WCAG AA, focus states (test → kod → verify)
+
+### Security (MANDATORY):
+- [ ] S1: CSP audit na stronach z dynamic content (Baseline #6)
+- [ ] S2: Accessibility + security — WCAG AA (Baseline #6)
+- [ ] S3: Test security: scan nagłówków (Baseline #6)
+
+### Docs (MANDATORY):
+- [ ] Update docs/CHANGELOG.md
+- [ ] Update docs/README.md
+
+### Stage Completion (MANDATORY):
+- [ ] Self-check: Look & Feel z PRD pokryte
+- [ ] Self-check: brak hardcoded secrets
+- [ ] Self-check: testy zielone
+- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy → [x]
+
+---
+
+## Stage 7: Dopracowanie i Finalizacja
+**Cel:** Smoke testy, security review, dokumentacja końcowa, deployment prep.
+**User Stories:** Warstwa jakości i production-readiness.
+
+### Taski:
+- [ ] T1: Smoke testy e2e — Playwright (test → kod → verify)
+- [ ] T2: Security audit — OWASP Top 10, secrets scan (test → kod → verify)
+- [ ] T3: Code review i refactor (test → kod → verify)
+- [ ] T4: Performance audit — Lighthouse, API load test, DB queries (test → kod → verify)
+- [ ] T5: Dokumentacja finalna — SECURITY.md, ARCHITECTURE.md (test → kod → verify)
+- [ ] T6: Deployment prep — Dockerfile, docker-compose.prod.yml, Caddyfile (test → kod → verify)
+- [ ] T7: Health checks i monitoring (test → kod → verify)
+- [ ] T8: docs/RUNBOOK.md (test → kod → verify)
+
+### Security (MANDATORY):
+- [ ] S1: Pełny security scan (PRD: threat model)
+- [ ] S2: Penetration test (Baseline #1-9)
+- [ ] S3: Secrets scan (Baseline #5)
+- [ ] S4: CORS final check (Baseline #6)
+- [ ] S5: Smoke test security (Baseline #1, #2, #8)
+
+### Docs (MANDATORY):
+- [ ] Create docs/SECURITY.md
+- [ ] Create docs/ARCHITECTURE.md
+- [ ] Create docs/PERFORMANCE.md
+- [ ] Create docs/RUNBOOK.md
+- [ ] Final update docs/CHANGELOG.md, API.md, README.md
+
+### Stage Completion (MANDATORY):
+- [ ] Self-check: WSZYSTKIE US z PRD pokryte
+- [ ] Self-check: brak hardcoded secrets
+- [ ] Self-check: testy zielone (funkcjonalne + security + e2e)
+- [ ] Self-check: docs aktualne
+- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy → [x]
