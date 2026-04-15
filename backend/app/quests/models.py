@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,10 +22,7 @@ class Quest(Base):
     skills: Mapped[list] = mapped_column(JSONB, server_default="[]")
     briefing: Mapped[str] = mapped_column(Text, nullable=False)
     success_response: Mapped[str | None] = mapped_column(Text, nullable=True)
-    evaluation_type: Mapped[str] = mapped_column(
-        Enum("text_answer", "url_check", "quiz", "command_output", name="evaluation_type", create_type=False),
-        nullable=False,
-    )
+    evaluation_type: Mapped[str] = mapped_column(String(30), nullable=False)
     evaluation_criteria: Mapped[dict] = mapped_column(JSONB, server_default="{}")
     failure_states: Mapped[list] = mapped_column(JSONB, server_default="[]")
     max_hints: Mapped[int] = mapped_column(Integer, server_default="3")
@@ -66,12 +63,7 @@ class QuestState(Base):
     quest_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("quests.id", ondelete="CASCADE"), nullable=False
     )
-    state: Mapped[str] = mapped_column(
-        Enum("LOCKED", "AVAILABLE", "IN_PROGRESS", "EVALUATING", "COMPLETED", "FAILED_ATTEMPT",
-             name="quest_state", create_type=False),
-        server_default="LOCKED",
-        nullable=False,
-    )
+    state: Mapped[str] = mapped_column(String(20), server_default="LOCKED", nullable=False)
     hints_used: Mapped[int] = mapped_column(Integer, server_default="0")
     attempts: Mapped[int] = mapped_column(Integer, server_default="0")
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
