@@ -5,11 +5,14 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.auth.router import router as auth_router
 from app.config import settings
 from app.logging import setup_logging
 from app.middleware import CorrelationIdMiddleware, OriginCheckMiddleware, SecurityHeadersMiddleware
+from app.rate_limit import limiter
 
 # Initialize structured logging
 setup_logging()
@@ -21,6 +24,10 @@ app = FastAPI(
     description="Narrative-Driven Quest Sandbox — API",
     version="0.1.0",
 )
+
+# Rate limiter setup
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Middleware order: outermost first in add_middleware
 app.add_middleware(CorrelationIdMiddleware)

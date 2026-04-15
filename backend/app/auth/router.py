@@ -16,6 +16,7 @@ from app.auth.jwt import (
     decode_token,
 )
 from app.config import settings
+from app.rate_limit import API_KEY_GENERATE_RATE_LIMIT, LOGIN_RATE_LIMIT, _get_user_id_or_ip, limiter
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -36,7 +37,8 @@ class GenerateApiKeyRequest(BaseModel):
 
 
 @router.get("/github/login")
-async def github_login() -> RedirectResponse:
+@limiter.limit(LOGIN_RATE_LIMIT)
+async def github_login(request: Request) -> RedirectResponse:
     params = urlencode({
         "client_id": settings.GITHUB_CLIENT_ID,
         "scope": "read:user user:email",
@@ -100,7 +102,9 @@ async def logout(token_data: dict = Depends(get_current_user_token)) -> dict:
 
 
 @router.post("/api-key/generate", status_code=201)
+@limiter.limit(API_KEY_GENERATE_RATE_LIMIT, key_func=_get_user_id_or_ip)
 async def api_key_generate(
+    request: Request,
     body: GenerateApiKeyRequest,
     token_data: dict = Depends(get_current_user_token),
 ) -> dict:
