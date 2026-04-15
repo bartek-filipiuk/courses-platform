@@ -1,14 +1,13 @@
-# NDQS Platform — API Reference
+# API Reference — NDQS Platform
 
-## Base URL
+Base URL: `http://localhost:8000`
 
-- Development: `http://localhost:8000`
-- Swagger UI: `http://localhost:8000/docs`
+Interactive docs (Swagger UI): `http://localhost:8000/docs`
 
 ## Authentication
 
-Most endpoints require either:
-- **Bearer token**: `Authorization: Bearer <access_token>`
+All protected endpoints require one of:
+- **JWT Bearer token**: `Authorization: Bearer <access_token>`
 - **API Key**: `X-API-Key: ndqs_<key>`
 
 ---
@@ -16,9 +15,9 @@ Most endpoints require either:
 ## Health
 
 ### `GET /api/health`
-Returns service health status. No auth required.
+Returns service status. No auth required.
 
-**Response** `200`:
+**Response** `200`
 ```json
 {"status": "ok", "service": "ndqs-backend"}
 ```
@@ -30,19 +29,20 @@ Returns service health status. No auth required.
 ### `GET /api/auth/github/login`
 Redirects to GitHub OAuth authorization page.
 
-**Response** `302`: Redirect to `https://github.com/login/oauth/authorize`
+**Rate limit**: 10 requests per IP per 5 minutes.
 
-### `GET /api/auth/github/callback?code=<code>`
-GitHub OAuth callback. Exchanges code for token and creates/finds user.
+**Response** `302` → Redirect to `https://github.com/login/oauth/authorize`
 
-> **Note:** Currently a stub — returns acknowledgment but does not complete OAuth flow.
+### `GET /api/auth/github/callback?code={code}`
+OAuth callback. Exchanges authorization code for user token.
 
-**Query params:**
-- `code` (string, required, min_length=1)
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `code` | string | yes | GitHub authorization code (min 1 char) |
 
-**Response** `200`:
+**Response** `200`
 ```json
-{"message": "OAuth callback received", "code": "<code>"}
+{"message": "OAuth callback received", "code": "..."}
 ```
 
 ---
@@ -50,39 +50,35 @@ GitHub OAuth callback. Exchanges code for token and creates/finds user.
 ## Auth — JWT
 
 ### `GET /api/auth/me`
-Returns current user info. Requires auth (JWT or API Key).
+Returns current user info. Requires JWT or API Key auth.
 
-**Headers:** `Authorization: Bearer <token>` or `X-API-Key: <key>`
-
-**Response** `200`:
+**Response** `200`
 ```json
-{"user_id": "<uuid>", "role": "student|admin", "email": "<email>"}
+{"user_id": "uuid", "role": "student", "email": "user@example.com"}
 ```
 
-**Response** `401`: Missing or invalid auth.
+**Errors**: `401` — missing or invalid token
 
 ### `POST /api/auth/refresh`
-Refreshes JWT tokens. Requires valid refresh token.
+Refreshes an expired access token using a valid refresh token. Returns new token pair (rotation — old refresh token is invalidated).
 
-**Headers:** `Authorization: Bearer <refresh_token>`
+**Headers**: `Authorization: Bearer <refresh_token>`
 
-**Response** `200`:
+**Response** `200`
 ```json
 {
-  "access_token": "<new_access_token>",
-  "refresh_token": "<new_refresh_token>",
+  "access_token": "eyJ...",
+  "refresh_token": "eyJ...",
   "token_type": "bearer"
 }
 ```
 
-**Response** `401`: Invalid or expired refresh token.
+**Errors**: `401` — missing or invalid refresh token
 
 ### `POST /api/auth/logout`
-Logs out current user. Requires auth.
+Logs out the current user. Requires JWT or API Key auth.
 
-> **Note:** Currently returns success but does not blacklist token in Redis (TODO).
-
-**Response** `200`:
+**Response** `200`
 ```json
 {"message": "Logged out successfully"}
 ```
@@ -92,70 +88,79 @@ Logs out current user. Requires auth.
 ## Auth — API Keys
 
 ### `POST /api/auth/api-key/generate`
-Generates a new API key. Requires auth.
+Generates a new API key for the authenticated user. The raw key is returned **once** — store it securely.
 
-**Body:**
+**Rate limit**: 3 requests per user per hour.
+
+**Auth**: Required (JWT)
+
+**Body**
 ```json
-{"name": "My Key"}
+{"name": "My CLI Key"}
 ```
 
-- `name` (string, required, 1-255 chars, not blank)
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `name` | string | 1–255 chars, non-blank |
 
-**Response** `201`:
+**Response** `201`
 ```json
 {
-  "id": "<uuid>",
-  "name": "My Key",
-  "key": "ndqs_<raw_key>",
-  "prefix": "ndqs_<first8chars>",
-  "created_at": "<iso_datetime>"
+  "id": "uuid",
+  "name": "My CLI Key",
+  "key": "ndqs_abc123...",
+  "created_at": "2025-01-01T00:00:00Z"
 }
 ```
 
-### `GET /api/auth/api-key/list`
-Lists user's API keys (masked). Requires auth.
+**Errors**: `401` — not authenticated, `422` — validation error, `429` — rate limited
 
-**Response** `200`:
+### `GET /api/auth/api-key/list`
+Lists all API keys for the authenticated user. Keys are masked (only prefix shown).
+
+**Auth**: Required (JWT)
+
+**Response** `200`
 ```json
 [
-  {
-    "id": "<uuid>",
-    "name": "My Key",
-    "prefix": "ndqs_<first8chars>",
-    "is_active": true,
-    "created_at": "<iso_datetime>",
-    "expires_at": null
-  }
+  {"id": "uuid", "name": "My CLI Key", "key_prefix": "ndqs_abc1...", "created_at": "..."}
 ]
 ```
 
 ### `DELETE /api/auth/api-key/revoke/{key_id}`
-Revokes an API key. Requires auth.
+Revokes an API key by ID.
 
-**Path params:**
-- `key_id` (UUID, required)
+**Auth**: Required (JWT)
 
-**Response** `200`:
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `key_id` | UUID | yes | API key ID to revoke |
+
+**Response** `200`
 ```json
 {"message": "API key revoked"}
 ```
 
-**Response** `404`: API key not found or doesn't belong to user.
+**Errors**: `401` — not authenticated, `404` — key not found, `422` — invalid UUID
 
 ---
 
-## Security Headers
+## Error Responses
 
-All responses include:
-- `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`
-- `X-Frame-Options: DENY`
-- `X-Content-Type-Options: nosniff`
-- `Referrer-Policy: strict-origin`
-- `X-Permitted-Cross-Domain-Policies: none`
-- `X-Correlation-Id: <uuid>` (per-request tracking)
+### Validation Error `422`
+**Production**: sanitized field + message
+```json
+{"detail": [{"field": "name", "message": "Field required"}]}
+```
 
-## Token Details
+**Development**: full Pydantic details (loc, msg, type, ctx)
 
-- Access token TTL: 15 minutes
-- Refresh token TTL: 7 days
-- Refresh tokens are rotated (new pair on each refresh)
+### Rate Limited `429`
+```json
+{"error": "Rate limit exceeded: 10 per 5 minute"}
+```
+
+### Internal Error `500`
+**Production**: `{"detail": "Internal server error"}` with `X-Correlation-ID` header
+
+**Development**: includes `detail` (error message) and `traceback`

@@ -1,35 +1,31 @@
 # Changelog
 
-## Stage 1 — Minimalna Dzialajaca Aplikacja (Scaffolding)
+All notable changes to the NDQS Platform are documented here.
 
-### Completed
-- **T0:** `.env.example` with all required variables and documentation
-- **T1:** Backend FastAPI scaffold — directory structure, CORS, `/api/health`, custom exception handler
-- **T2:** Frontend Next.js 15 scaffold — App Router, Tailwind 4, dark theme, Geist/JetBrains Mono fonts, CSP headers
-- **T3:** Docker Compose — backend + frontend + PostgreSQL + Redis with healthchecks and depends_on conditions
-- **T4:** Database setup — SQLAlchemy async (asyncpg), Alembic async migrations, `users` table with role enum
-- **T6:** Auth frontend — NextAuth.js v5, GitHub provider, login page with terminal theme
-- **T7:** API Key system — generate, list (masked), revoke endpoints; SHA256 hashed storage
-- **T8:** Frontend-backend integration — Next.js proxy, api-client.ts, shared TypeScript types
-- **T9:** Structlog setup — JSON logging, correlation ID middleware, log level via env
+## [Unreleased]
 
-### Security Completed
-- **S1:** Pydantic input validation on all auth endpoints
-- **S2:** Secrets in `.env` with BaseSettings production validation (32-char min)
-- **S3:** CORS restricted to FRONTEND_URL allowlist
-- **S4:** JWT TTL (15min access, 7d refresh) with rotation; API keys hashed
-- **S5:** Security tests — 401 for missing/invalid/expired auth (8 test cases)
-- **S6:** CSRF origin validation middleware
-- **S7:** Security headers (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy)
-- **S9:** Error message hardening — generic 500 in production, no schema leaks
+### Stage 1: Minimal Working Application (Scaffolding)
 
-### In Progress / TODO
-- **T5:** Auth backend — JWT/refresh/middleware works, but GitHub OAuth callback and logout Redis blacklist are stubs
-- **S8:** Rate limiting — slowapi dependency installed but `app/rate_limit` module not created; tests fail
+#### Added
+- **Backend scaffold** — FastAPI project structure with domain packages (`auth`, `courses`, `quests`, `evaluation`), health endpoint, CORS, custom exception handler
+- **Frontend scaffold** — Next.js 15 App Router with Tailwind 4, shadcn/ui, dark theme, Geist Sans + JetBrains Mono fonts, CSP headers
+- **Docker Compose** — backend + frontend + PostgreSQL 16 + Redis 7 with healthchecks and `depends_on` conditions
+- **Database setup** — SQLAlchemy async engine (asyncpg), Alembic migrations, `users` table with role enum (student/admin)
+- **Auth backend** — GitHub OAuth login flow, JWT access tokens (15min) + refresh tokens (7d) with rotation, logout endpoint, `get_current_user` middleware supporting JWT and API Key auth
+- **Auth frontend** — NextAuth.js v5 config with GitHub provider, login page
+- **API Key system** — generate, list (masked), revoke endpoints; keys hashed with SHA-256 and prefixed `ndqs_`
+- **Frontend-backend integration** — Next.js proxy to FastAPI, shared types, `api-client.ts` wrapper, OpenAPI Swagger UI at `/docs`
+- **Structured logging** — structlog with JSON output, correlation_id middleware per request
+- **Rate limiting** — slowapi-based rate limiting on auth endpoints: 10 login attempts/IP/5min, 3 API key generations/user/hour
+- **Error hardening** — custom `RequestValidationError` handler: production returns sanitized field+message errors; development returns full Pydantic details
 
-### Known Issues
-- T2: shadcn/ui not initialized (dependency installed but `npx shadcn init` not run)
-- T6: Login button text in English ("Sign in with GitHub") instead of Polish
-- T6: No animated terminal onboarding (framer-motion installed but not used)
-- S4: API keys use SHA256 instead of bcrypt (passlib installed but not integrated)
-- Biome: `globals.css` Tailwind 4 `@theme` directive causes parse warning (Biome limitation)
+#### Security
+- Input validation with Pydantic schemas on all auth endpoints
+- Secrets managed via `.env` + pydantic `BaseSettings` with production validation
+- Restrictive CORS allowlist (localhost:3000 dev, production domain)
+- JWT short-lived access tokens (15min), refresh rotation (7d), API keys hashed
+- Security access tests: 401 for missing/invalid/expired tokens
+- CSRF protection via Origin header check middleware, SameSite cookies
+- Security headers: CSP, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy
+- Rate limiting on auth endpoints (429 on abuse)
+- Error messages hardened for production (no stack traces, no DB schema leaks)

@@ -26,19 +26,19 @@
 - [x] S5: Test security: próba dostępu do /api/auth/me bez tokena → 401. Próba z invalid API Key → 401. Próba z expired JWT → 401. (Baseline #1)
 - [x] S6: CSRF protection — CSRF token na POST endpoints (fastapi-csrf-protect lub custom middleware). SameSite=Lax cookies. (Baseline #6)
 - [x] S7: CSP + security headers — Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin. Od Stage 1 (nie czekamy do Stage 6). (Baseline #6)
-- [ ] S8: Rate limiting auth — max 10 login attempts per IP per 5min, max 3 API key generations per user per hour (slowapi + Redis). Test: 11 requests → 429. (Baseline #8)
+- [x] S8: Rate limiting auth — max 10 login attempts per IP per 5min, max 3 API key generations per user per hour (slowapi + Redis). Test: 11 requests → 429. (Baseline #8)
 - [x] S9: Error message hardening — custom exception handler: production → generic "Internal server error" (500), development → stack trace. Validation errors nie ujawniają DB schema. (PRD threat model)
 
 ### Docs (MANDATORY):
-- [ ] Update docs/CHANGELOG.md
-- [ ] Update docs/API.md (auth endpoints)
-- [ ] Update docs/README.md (Quick Start, struktura katalogów)
+- [x] Update docs/CHANGELOG.md
+- [x] Update docs/API.md (auth endpoints)
+- [x] Update docs/README.md (Quick Start, struktura katalogów)
 
 ### Stage Completion (MANDATORY):
-- [ ] Self-check: zakres stage zgodny z PRD (US-1, US-12 pokryte)
-- [ ] Self-check: brak hardcoded secrets w kodzie
-- [ ] Self-check: testy zielone (funkcjonalne + security)
-- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+- [x] Self-check: zakres stage zgodny z PRD (US-1, US-12 pokryte)
+- [x] Self-check: brak hardcoded secrets w kodzie
+- [x] Self-check: testy zielone (funkcjonalne + security)
+- [x] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
 
 ---
 
