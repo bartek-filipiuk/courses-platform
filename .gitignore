@@ -11,6 +11,8 @@ dist/
 build/
 .eggs/
 *.egg
+.venv/
+venv/
 
 # Node.js
 node_modules/
