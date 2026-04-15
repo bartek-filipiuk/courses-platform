@@ -29,3 +29,22 @@ All notable changes to the NDQS Platform are documented here.
 - Security headers: CSP, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy
 - Rate limiting on auth endpoints (429 on abuse)
 - Error messages hardened for production (no stack traces, no DB schema leaks)
+
+### Stage 2: Courses & Enrollment
+
+#### Added
+- **Course models** — `courses` and `enrollments` tables (Alembic migration 002)
+- **Admin CRUD** — `POST/PUT /api/admin/courses` (admin-only, Pydantic validation)
+- **Course catalog** — `GET /api/courses` (published only), `GET /api/courses/{id}`
+- **Enrollment** — `POST /api/courses/{id}/enroll` (duplicate + published check, rate limited)
+- **Starter Pack** — `GET /api/courses/{id}/starter-pack` (dynamic ZIP: CLAUDE.md, .env.example, README)
+- **Frontend: Missions catalog** — `/missions` with dark modern SaaS cards, skeleton loaders
+- **Frontend: Course detail** — `/missions/[courseId]` with enroll button + starter pack download
+- **Frontend: Admin CRUD** — `/admin/courses` with course creation form
+- **Seed script** — `scripts/seed_dev.py` with demo admin, student, 2 courses (Skynet Breaker, Pandemic Shield)
+
+#### Security
+- Admin role authorization middleware (`require_admin`)
+- Pydantic input validation (title max 255, description max 5000)
+- Rate limiting on enrollment (10/h) and starter-pack (5/min)
+- Security tests: student → 403 on admin endpoints, no-auth → 401

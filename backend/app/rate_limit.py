@@ -38,3 +38,5 @@ limiter = Limiter(
 # Rate limit strings
 LOGIN_RATE_LIMIT = "10/5minutes"
 API_KEY_GENERATE_RATE_LIMIT = "3/hour"
+ENROLLMENT_RATE_LIMIT = "10/hour"
+STARTER_PACK_RATE_LIMIT = "5/minute"

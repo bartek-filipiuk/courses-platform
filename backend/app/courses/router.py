@@ -19,6 +19,7 @@ from app.courses.schemas import (
     EnrollmentResponse,
 )
 from app.database import get_db
+from app.rate_limit import ENROLLMENT_RATE_LIMIT, STARTER_PACK_RATE_LIMIT, _get_user_id_or_ip, limiter
 
 router = APIRouter(tags=["courses"])
 
@@ -101,7 +102,9 @@ async def get_course(
 
 
 @router.post("/api/courses/{course_id}/enroll", status_code=201)
+@limiter.limit(ENROLLMENT_RATE_LIMIT, key_func=_get_user_id_or_ip)
 async def enroll(
+    request: Request,
     course_id: uuid.UUID,
     token_data: dict = Depends(get_current_user_token),
     db: AsyncSession = Depends(get_db),
@@ -136,7 +139,9 @@ async def enroll(
 
 
 @router.get("/api/courses/{course_id}/starter-pack")
+@limiter.limit(STARTER_PACK_RATE_LIMIT, key_func=_get_user_id_or_ip)
 async def download_starter_pack(
+    request: Request,
     course_id: uuid.UUID,
     _token_data: dict = Depends(get_current_user_token),
     db: AsyncSession = Depends(get_db),

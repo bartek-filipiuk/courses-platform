@@ -145,6 +145,84 @@ Revokes an API key by ID.
 
 ---
 
+## Courses
+
+### `GET /api/courses`
+List all published courses.
+
+**Auth**: Required (JWT or API Key)
+
+**Response** `200`: Array of course objects with `id`, `title`, `narrative_title`, `description`, `persona_name`, `cover_image_url`, `is_published`, `created_at`.
+
+### `GET /api/courses/{course_id}`
+Get course details including `global_context`, `persona_prompt`, `updated_at`.
+
+**Auth**: Required (JWT or API Key)
+
+**Errors**: `404` — course not found
+
+### `POST /api/admin/courses`
+Create a new course. **Admin only.**
+
+**Auth**: Required (JWT, role=admin)
+
+**Body**
+
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `title` | string | 1–255 chars, required, non-blank |
+| `narrative_title` | string | max 255, optional |
+| `description` | string | max 5000, optional |
+| `persona_name` | string | max 100, optional |
+| `persona_prompt` | string | max 10000, optional |
+| `global_context` | string | max 10000, optional |
+| `cover_image_url` | string | max 500, optional |
+| `model_id` | string | max 100, optional |
+| `is_published` | boolean | default false |
+
+**Response** `201`: `{"id": "uuid", "title": "...", "is_published": false}`
+
+**Errors**: `403` — not admin, `422` — validation error
+
+### `PUT /api/admin/courses/{course_id}`
+Update a course. **Admin only.** Partial update (only send fields to change).
+
+**Auth**: Required (JWT, role=admin)
+
+**Errors**: `403` — not admin, `404` — not found
+
+---
+
+## Enrollment
+
+### `POST /api/courses/{course_id}/enroll`
+Enroll the current user in a course.
+
+**Auth**: Required (JWT or API Key)
+
+**Rate limit**: 10 per user per hour
+
+**Response** `201`: `{"user_id": "uuid", "course_id": "uuid", "status": "enrolled"}`
+
+**Errors**: `400` — course not published, `404` — not found, `409` — already enrolled, `429` — rate limited
+
+---
+
+## Starter Pack
+
+### `GET /api/courses/{course_id}/starter-pack`
+Download a ZIP file with `CLAUDE.md`, `.env.example`, and `README.md` configured for the course.
+
+**Auth**: Required (JWT or API Key)
+
+**Rate limit**: 5 per user per minute
+
+**Response**: `200` — `application/zip` file download
+
+**Errors**: `404` — course not found, `429` — rate limited
+
+---
+
 ## Error Responses
 
 ### Validation Error `422`

@@ -54,25 +54,25 @@
 - [x] T5: Frontend: Katalog kursów — strona `/missions` z kartami kursów (Mission Briefs), filtrowanie, dark modern design, Framer Motion animations (test → kod → verify)
 - [x] T6: Frontend: Strona kursu — `/missions/[courseId]` z opisem, przyciskiem "Przyjmij Misję" (enroll), "Pobierz Starter Pack" (test → kod → verify)
 - [x] T7: Frontend: Admin CRUD — `/admin/courses` lista + formularz tworzenia/edycji kursu (test → kod → verify)
-- [ ] T8: Rate limiter infrastructure — setup slowapi z Redis backend, dekorator `@rate_limit`, konfiguracja per-endpoint limitów via env/config (test → kod → verify)
-- [ ] T9: Seed script — `scripts/seed_dev.py`: demo admin user, 2 demo kursy (beginner/advanced), 5-6 demo questów per kurs, demo artefakty. Uruchamiany ręcznie lub via `docker compose exec backend python scripts/seed_dev.py` (test → kod → verify)
+- [x] T8: Rate limiter infrastructure — setup slowapi z Redis backend, dekorator `@rate_limit`, konfiguracja per-endpoint limitów via env/config (test → kod → verify)
+- [x] T9: Seed script — `scripts/seed_dev.py`: demo admin user, 2 demo kursy (beginner/advanced), 5-6 demo questów per kurs, demo artefakty. Uruchamiany ręcznie lub via `docker compose exec backend python scripts/seed_dev.py` (test → kod → verify)
 
 ### Security (MANDATORY):
-- [ ] S1: Autoryzacja admin — middleware `require_admin` sprawdzający role='admin' na endpointach admin. User z role='student' nie może tworzyć kursów (Baseline #1)
-- [ ] S2: Walidacja input — Pydantic na course CRUD (title max 255, description max 5000, sanityzacja HTML) (Baseline #2)
-- [ ] S3: Rate limiting — max 10 enrollments per user per godzinę, max 5 starter-pack downloads per minutę (Baseline #8)
-- [ ] S4: Test security: próba POST /api/admin/courses z tokenem studenta → 403. Próba enrollment bez auth → 401. (Baseline #1)
+- [x] S1: Autoryzacja admin — middleware `require_admin` sprawdzający role='admin' na endpointach admin. User z role='student' nie może tworzyć kursów (Baseline #1)
+- [x] S2: Walidacja input — Pydantic na course CRUD (title max 255, description max 5000, sanityzacja HTML) (Baseline #2)
+- [x] S3: Rate limiting — max 10 enrollments per user per godzinę, max 5 starter-pack downloads per minutę (Baseline #8)
+- [x] S4: Test security: próba POST /api/admin/courses z tokenem studenta → 403. Próba enrollment bez auth → 401. (Baseline #1)
 
 ### Docs (MANDATORY):
-- [ ] Update docs/CHANGELOG.md
-- [ ] Update docs/API.md (courses, enrollment, starter-pack endpoints)
-- [ ] Update docs/README.md (jeśli zmiana struktury)
+- [x] Update docs/CHANGELOG.md
+- [x] Update docs/API.md (courses, enrollment, starter-pack endpoints)
+- [x] Update docs/README.md (jeśli zmiana struktury)
 
 ### Stage Completion (MANDATORY):
-- [ ] Self-check: zakres stage zgodny z PRD (US-2, US-3, US-4, US-14 pokryte)
-- [ ] Self-check: brak hardcoded secrets w kodzie
-- [ ] Self-check: testy zielone (funkcjonalne + security)
-- [ ] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
+- [x] Self-check: zakres stage zgodny z PRD (US-2, US-3, US-4, US-14 pokryte)
+- [x] Self-check: brak hardcoded secrets w kodzie
+- [x] Self-check: testy zielone (funkcjonalne + security)
+- [x] Zaktualizuj HANDOFF: WSZYSTKIE checkboxy tego stage → [x]
 
 ---
 
