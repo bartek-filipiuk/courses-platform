@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SRC = path.join(ROOT, "src");
@@ -24,9 +24,7 @@ describe("Auth Frontend", () => {
 
 	describe("Login page", () => {
 		it("has login page at app/login/page.tsx", () => {
-			expect(
-				fs.existsSync(path.join(SRC, "app/login/page.tsx")),
-			).toBe(true);
+			expect(fs.existsSync(path.join(SRC, "app/login/page.tsx"))).toBe(true);
 		});
 
 		it("login page contains GitHub login button text", () => {
@@ -40,10 +38,9 @@ describe("Auth Frontend", () => {
 
 	describe("Auth API route", () => {
 		it("has NextAuth API route handler", () => {
-			const exists =
-				fs.existsSync(
-					path.join(SRC, "app/api/auth/[...nextauth]/route.ts"),
-				);
+			const exists = fs.existsSync(
+				path.join(SRC, "app/api/auth/[...nextauth]/route.ts"),
+			);
 			expect(exists).toBe(true);
 		});
 	});
