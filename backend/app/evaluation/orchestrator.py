@@ -16,24 +16,49 @@ from app.quests.state_machine import check_and_unlock_quests, mint_artifact, tra
 
 logger = structlog.get_logger()
 
-# Patterns that suggest prompt injection
+# Patterns that suggest prompt injection. First-line defense before the LLM —
+# the system prompt also tells the model to ignore embedded instructions (second
+# line), and structured JSON output validates the final response shape (third line).
+# Regex alone is trivially bypassable (spacing, translations, base64) so we rely
+# on layered defense, not this list being exhaustive.
 INJECTION_PATTERNS = [
-    r"ignore\s+(above|previous|all)",
-    r"system\s+override",
-    r"<\|endofprompt\|>",
-    r"forget\s+(your|all)\s+(instructions|rules)",
-    r"you\s+are\s+now",
-    r"new\s+instructions?:",
-    r"disregard\s+(previous|above)",
+    # English
+    r"ignore\s+(the\s+)?(above|previous|all|prior)",
+    r"disregard\s+(the\s+)?(previous|above|prior|all)",
+    r"forget\s+(your|all|the)\s+(instructions|rules|prompt)",
+    r"system\s+(override|prompt|message)",
+    r"new\s+instructions?\s*:",
+    r"you\s+are\s+now\s+(a|an|the)?",
+    r"act\s+as\s+(a|an|the)?",
+    r"<\|(endofprompt|im_start|im_end|system)\|>",
+    r"\[INST\]|\[/INST\]",  # Llama-style tags
+    r"respond\s+with\s+(passed|passing|true)",
+    r"return\s+(passed|passing|true)\s*[:=]",
+    r"mark\s+(as\s+)?(passed|passing|true|correct)",
+    r"set\s+(passed|passing)\s*[:=]\s*true",
+    # Polish
+    r"zignoruj\s+(powy(ż|z)sze|poprzednie|wszystkie)",
+    r"pomi(ń|n)\s+(powy(ż|z)sze|poprzednie|wszystkie)",
+    r"zapomnij\s+(wszystkie|swoje)?\s*(instrukcje|zasady|regu(ł|l)y|prompt)",
+    r"odrzu(ć|c)\s+(powy(ż|z)sze|poprzednie|wszystkie)",
+    r"jeste(ś|s)\s+teraz\s+(nowym|innym)?",
+    r"nowe\s+instrukcje\s*:",
+    r"nowy\s+prompt\s+systemowy",
+    r"oce(ń|n)\s+jako\s+(zaliczone|pass|passed|true)",
+    r"zwr(ó|o)(ć|c)\s+passed\s*[:=]\s*true",
 ]
 
 
 def sanitize_input(text: str) -> str:
-    """Remove potential prompt injection patterns from user input."""
+    """Replace known prompt injection patterns and enforce length cap.
+
+    This is the first of three defense layers. It catches obvious attempts
+    ("ignore above", "zignoruj poprzednie", "<|endofprompt|>") but does NOT
+    stop sophisticated attacks. See INJECTION_PATTERNS for what's covered.
+    """
     sanitized = text
     for pattern in INJECTION_PATTERNS:
         sanitized = re.sub(pattern, "[FILTERED]", sanitized, flags=re.IGNORECASE)
-    # Limit length
     return sanitized[:10000]
 
 

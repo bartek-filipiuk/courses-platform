@@ -27,8 +27,8 @@ from app.rate_limit import limiter
 
 router = APIRouter(tags=["evaluation"])
 
-SUBMIT_RATE_LIMIT = "5/hour"
-HINT_RATE_LIMIT = "10/hour"
+SUBMIT_RATE_LIMIT = "10/hour"  # per-user per-quest (see _get_user_quest_key)
+HINT_RATE_LIMIT = "10/hour"    # per-user globally (max_hints per quest already enforced)
 
 # Payload validators per type
 PAYLOAD_VALIDATORS = {
@@ -51,8 +51,17 @@ def _get_user_id_or_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _get_user_quest_key(request: Request) -> str:
+    """Rate-limit scope: same user + same quest. Lets a student work on
+    multiple quests in parallel without one quest's retries eating budget
+    for another."""
+    user = _get_user_id_or_ip(request)
+    quest_id = request.path_params.get("quest_id", "global")
+    return f"{user}:{quest_id}"
+
+
 @router.post("/api/quests/{quest_id}/submit", response_model=EvaluationResponse)
-@limiter.limit(SUBMIT_RATE_LIMIT, key_func=_get_user_id_or_ip)
+@limiter.limit(SUBMIT_RATE_LIMIT, key_func=_get_user_quest_key)
 async def submit_answer(
     request: Request,
     quest_id: uuid.UUID,
@@ -114,7 +123,7 @@ ALLOWED_UPLOAD_EXT = {".md", ".txt"}
 
 
 @router.post("/api/quests/{quest_id}/submit/file", response_model=EvaluationResponse)
-@limiter.limit(SUBMIT_RATE_LIMIT, key_func=_get_user_id_or_ip)
+@limiter.limit(SUBMIT_RATE_LIMIT, key_func=_get_user_quest_key)
 async def submit_answer_from_file(
     request: Request,
     quest_id: uuid.UUID,
