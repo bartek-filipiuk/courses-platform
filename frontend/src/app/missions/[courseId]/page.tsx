@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api-client";
 import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
+import { getDevToken } from "@/lib/dev-auth";
 import { Button } from "@/components/ui";
 import GlassCard from "@/components/GlassCard";
 import type { CourseDetail } from "@/types";
@@ -37,9 +38,25 @@ export default function CoursePage() {
 		}
 	};
 
-	const handleDownloadStarterPack = () => {
-		const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/courses/${courseId}/starter-pack`;
-		window.open(url, "_blank");
+	const handleDownloadStarterPack = async () => {
+		const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+		const token = await getDevToken("student");
+		const resp = await fetch(`${apiBase}/api/courses/${courseId}/starter-pack`, {
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		if (!resp.ok) {
+			setEnrollError(`Starter pack download failed (${resp.status})`);
+			return;
+		}
+		const blob = await resp.blob();
+		const downloadUrl = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = downloadUrl;
+		a.download = `starter-pack-${courseId}.zip`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(downloadUrl);
 	};
 
 	if (loading) {
