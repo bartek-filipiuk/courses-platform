@@ -110,6 +110,64 @@ async def list_course_quests(
     ]
 
 
+@router.get("/api/users/me/active-quest")
+async def get_active_quest(
+    course_id: uuid.UUID | None = None,
+    token_data: dict = Depends(get_current_user_token),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return the current active quest for the user across all enrollments (or one course).
+
+    Priority: IN_PROGRESS → FAILED_ATTEMPT → AVAILABLE (lowest sort_order wins within each).
+    Returns briefing + submit instructions. Used by AI assistants (Claude Code etc.)
+    in the Starter Pack to know what the student is working on right now.
+    """
+    user_id = uuid.UUID(token_data["sub"])
+
+    query = (
+        select(QuestState, Quest)
+        .join(Quest, QuestState.quest_id == Quest.id)
+        .where(
+            QuestState.user_id == user_id,
+            QuestState.state.in_(("IN_PROGRESS", "FAILED_ATTEMPT", "AVAILABLE")),
+        )
+    )
+    if course_id:
+        query = query.where(Quest.course_id == course_id)
+    result = await db.execute(query)
+    rows = result.all()
+
+    if not rows:
+        return {"active_quest": None, "message": "No active quest. Enroll in a course first."}
+
+    priority = {"IN_PROGRESS": 0, "FAILED_ATTEMPT": 1, "AVAILABLE": 2}
+    rows.sort(key=lambda r: (priority[r[0].state], r[1].sort_order))
+    quest_state, quest = rows[0]
+
+    return {
+        "active_quest": {
+            "quest_id": str(quest.id),
+            "course_id": str(quest.course_id),
+            "title": quest.title,
+            "sort_order": quest.sort_order,
+            "state": quest_state.state,
+            "evaluation_type": quest.evaluation_type,
+            "briefing": quest.briefing,
+            "skills": quest.skills,
+            "max_hints": quest.max_hints,
+            "hints_used": quest_state.hints_used,
+            "attempts": quest_state.attempts,
+        },
+        "submit_endpoint": f"POST /api/quests/{quest.id}/submit",
+        "submit_file_endpoint": (
+            f"POST /api/quests/{quest.id}/submit/file"
+            if quest.evaluation_type == "text_answer"
+            else None
+        ),
+        "hint_endpoint": f"POST /api/quests/{quest.id}/hint",
+    }
+
+
 @router.get("/api/users/me/artifacts", response_model=list[ArtifactResponse])
 async def list_user_artifacts(
     token_data: dict = Depends(get_current_user_token),
