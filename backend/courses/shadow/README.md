@@ -74,11 +74,18 @@ Jeśli wolisz pracować z terminala / AI-asystenta:
 export NDQS_API_KEY="ndqs_..."
 export NDQS_API_URL="http://localhost:8002"   # lub URL produkcyjny
 
-# Submit text answer (Q1, Q2, Q8, Q9)
+# Submit text answer (Q1, Q2, Q8, Q9) — inline
 curl -X POST "$NDQS_API_URL/api/quests/QUEST_ID/submit" \
   -H "X-API-Key: $NDQS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"text_answer","payload":{"answer":"TWÓJ TEKST"}}'
+
+# Submit text answer Z PLIKU (np. prd.md, tech_stack.md) — do ~50 KB tekstu
+jq -Rs --arg t text_answer '{type:$t, payload:{answer:.}}' prd.md \
+  | curl -X POST "$NDQS_API_URL/api/quests/QUEST_ID/submit" \
+      -H "X-API-Key: $NDQS_API_KEY" \
+      -H "Content-Type: application/json" \
+      --data-binary @-
 
 # Submit command output (Q3, Q4)
 curl -X POST "$NDQS_API_URL/api/quests/QUEST_ID/submit" \

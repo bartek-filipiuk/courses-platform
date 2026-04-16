@@ -144,6 +144,15 @@ Uruchomić pierwszy pełny kurs na platformie NDQS: **"Operation: SHADOW"** — 
   - Verify: hints_used incremented
   - Verify: comms_log entry
 
+### T12b: File upload submission (nie-MVP, dopisane z rozmowy 2026-04-16)
+- [x] Zwiększony limit text_answer/command_output do 50000 znaków (pokrywa 95% przypadków)
+- [ ] `POST /api/quests/{id}/submit/file` — multipart upload `.md/.txt` → wewnętrznie traktowany jak text_answer
+  - Auth: JWT/API Key
+  - Validator: MIME type whitelist (text/markdown, text/plain), max 100 KB
+  - Pipeline: czyta plik → sanitize_input → ten sam evaluate_submission
+  - Use case: kursant pracuje z Claude Code i trzyma PRD w pliku, nie chce kopiować do JSON
+- [ ] Docs: dopisać curl przykład "submit z pliku" do CLAUDE.md w Starter Pack
+
 ### T13: Test Starter Pack
 - [ ] GET /api/courses/{shadow_id}/starter-pack
   - Verify: ZIP z CLAUDE.md (persona SENTINEL), AGENTS.md, .env.example, README.md
