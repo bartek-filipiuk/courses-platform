@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Sidebar from "./Sidebar";
 
 interface SidebarContextValue {
@@ -17,8 +17,28 @@ export function useSidebar() {
 	return useContext(SidebarContext);
 }
 
+const STORAGE_KEY = "ndqs.sidebar.collapsed";
+
 export default function SidebarProvider({ children }: { children: ReactNode }) {
 	const [collapsed, setCollapsed] = useState(false);
+
+	// Hydrate from localStorage on mount (client-only).
+	useEffect(() => {
+		try {
+			const saved = localStorage.getItem(STORAGE_KEY);
+			if (saved !== null) setCollapsed(saved === "1");
+		} catch {
+			/* localStorage unavailable — keep default */
+		}
+	}, []);
+
+	useEffect(() => {
+		try {
+			localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
+		} catch {
+			/* ignore */
+		}
+	}, [collapsed]);
 
 	return (
 		<SidebarContext.Provider
