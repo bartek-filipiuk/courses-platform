@@ -385,6 +385,23 @@ textarea.input {
 	50% { opacity: 0; }
 }
 
+/* Quest Map node pulse (AVAILABLE) + glow (IN_PROGRESS) + spin (loader) */
+@keyframes node-pulse {
+	0%, 100% { box-shadow: 0 0 0 0 rgba(229, 181, 92, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3); }
+	50%      { box-shadow: 0 0 0 10px rgba(229, 181, 92, 0),   0 8px 24px rgba(0, 0, 0, 0.3); }
+}
+@keyframes node-glow {
+	0%, 100% { box-shadow: 0 0 18px rgba(229, 181, 92, 0.3),  0 8px 32px rgba(0, 0, 0, 0.4); }
+	50%      { box-shadow: 0 0 36px rgba(229, 181, 92, 0.55), 0 8px 32px rgba(0, 0, 0, 0.4); }
+}
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+@keyframes panel-slide-in {
+	from { transform: translateX(100%); }
+	to   { transform: translateX(0); }
+}
+
 /* Placeholder stripe fill (locked artifact states) */
 .stripes {
 	background-image: repeating-linear-gradient(
