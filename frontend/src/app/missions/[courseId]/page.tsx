@@ -123,6 +123,31 @@ export default function CoursePage() {
 					</GlassCard>
 				)}
 
+				{/* How to play (API-first flow) */}
+				{enrolled && (
+					<GlassCard className="mb-6 p-6 border border-accent-primary/20">
+						<div className="flex items-start gap-3">
+							<span className="text-accent-primary font-mono text-sm mt-0.5">→</span>
+							<div className="flex-1 space-y-2">
+								<h3 className="text-text-primary font-semibold">
+									Główna ścieżka: Claude Code / Cursor / Windsurf + API
+								</h3>
+								<p className="text-sm text-text-secondary leading-relaxed">
+									Pobierz <span className="text-text-primary font-medium">Starter Pack</span> i wrzuć{" "}
+									<code className="text-xs px-1.5 py-0.5 rounded bg-bg-elevated text-accent-primary">CLAUDE.md</code> do roota swojego projektu.
+									Asystent AI będzie znał kontekst misji i potrafi wywoływać NDQS API — pobierać aktywny quest, wysyłać PRD z pliku
+									{" "}(<code className="text-xs px-1.5 py-0.5 rounded bg-bg-elevated text-accent-primary">.md/.txt</code>),{" "}
+									output testów, URL-e deploymentu.
+								</p>
+								<p className="text-sm text-text-secondary leading-relaxed">
+									Formularze na stronie każdego questa działają — są dla szybkich testów i ludzi którzy wolą klikać.
+									Ale default flow to terminal + plik + API, bo tak realnie budujesz projekt.
+								</p>
+							</div>
+						</div>
+					</GlassCard>
+				)}
+
 				{/* Enroll error */}
 				{enrollError && (
 					<div className="mb-4 rounded-xl border border-accent-error/30 bg-accent-error/5 p-4">
