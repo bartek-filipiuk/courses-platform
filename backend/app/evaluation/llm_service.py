@@ -70,7 +70,11 @@ def _build_user_prompt(
 
     deterministic_text = ""
     if deterministic_results:
-        deterministic_text = f"\nDeterministic check results:\n{json.dumps(deterministic_results, indent=2)}"
+        deterministic_text = (
+            "\nDeterministic check results (ONLY source of concrete numbers you may cite —"
+            " do not invent latencies, sizes, timings, or addresses that are not in this block):\n"
+            f"{json.dumps(deterministic_results, indent=2)}"
+        )
 
     criteria_text = ""
     if quest.evaluation_criteria:

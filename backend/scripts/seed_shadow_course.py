@@ -267,6 +267,14 @@ QUESTS = [
             "method": "GET",
             "expected_status": 200,
             "body_contains": None,
+            "llm_instruction": (
+                "Zweryfikuj czy URL to github.com. Dodatkowo sprawdź, czy repo przypomina WŁASNĄ pracę kursanta "
+                "nad aplikacją z poprzednich questów — patrz na ścieżkę (user/repo-name). "
+                "Jeśli to znany duży publiczny projekt (np. torvalds/linux, facebook/react, vercel/next.js, "
+                "microsoft/vscode, kubernetes/kubernetes, django/django, angular/angular, itp.) — "
+                "zwróć passed=false z matched_failure=fs_public_repo_not_own. "
+                "Kursant miał wysłać swoje repo z aplikacji, nie cudze."
+            ),
         },
         "failure_states": [
             {
@@ -286,6 +294,17 @@ QUESTS = [
                 "gm_response": (
                     "SENTINEL: Potrzebuję URL do GitHuba — github.com/twój-user/twój-repo. "
                     "Nie gitlab, nie bitbucket. GitHub — tam mamy nasze kanały."
+                ),
+            },
+            {
+                "id": "fs_public_repo_not_own",
+                "trigger": "URL prowadzi do znanego popularnego publicznego repo (linux kernel, react, next.js, django itp.), a nie do własnego projektu kursanta",
+                "error_category": "authenticity",
+                "gm_response": (
+                    "SENTINEL: Operatywie, znam ten repozytorium. "
+                    "To nie Twoja praca — to znany publiczny projekt. "
+                    "Potrzebuję TWOJEGO kodu: repo które sam założyłeś, z aplikacją którą projektowałeś w Zaporach #1-#4. "
+                    "Historia commitów musi pokazywać Twoją pracę. Wyślij poprawny URL."
                 ),
             },
         ],
