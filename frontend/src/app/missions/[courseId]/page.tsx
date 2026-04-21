@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api-client";
 import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
+import { getDevToken } from "@/lib/dev-auth";
 import { Button } from "@/components/ui";
 import GlassCard from "@/components/GlassCard";
 import type { CourseDetail } from "@/types";
 
 export default function CoursePage() {
 	const params = useParams();
+	const router = useRouter();
 	const courseId = params.courseId as string;
 	const { data: course, loading, error } = useAuthFetch<CourseDetail>(`/api/courses/${courseId}`);
 	const [enrolling, setEnrolling] = useState(false);
@@ -23,6 +25,8 @@ export default function CoursePage() {
 		try {
 			await mutate(`/api/courses/${courseId}/enroll`, { method: "POST" });
 			setEnrolled(true);
+			// Redirect to quest map after enrollment
+			setTimeout(() => router.push(`/quest-map?courseId=${courseId}`), 1500);
 		} catch (e) {
 			if (e instanceof ApiError && e.status === 409) {
 				setEnrolled(true);
@@ -34,9 +38,25 @@ export default function CoursePage() {
 		}
 	};
 
-	const handleDownloadStarterPack = () => {
-		const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/courses/${courseId}/starter-pack`;
-		window.open(url, "_blank");
+	const handleDownloadStarterPack = async () => {
+		const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+		const token = await getDevToken("student");
+		const resp = await fetch(`${apiBase}/api/courses/${courseId}/starter-pack`, {
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		if (!resp.ok) {
+			setEnrollError(`Starter pack download failed (${resp.status})`);
+			return;
+		}
+		const blob = await resp.blob();
+		const downloadUrl = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = downloadUrl;
+		a.download = `starter-pack-${courseId}.zip`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(downloadUrl);
 	};
 
 	if (loading) {
@@ -98,6 +118,31 @@ export default function CoursePage() {
 							<div>
 								<p className="text-text-primary font-medium">{course.persona_name}</p>
 								<p className="text-xs text-text-secondary">Game Master</p>
+							</div>
+						</div>
+					</GlassCard>
+				)}
+
+				{/* How to play (API-first flow) */}
+				{enrolled && (
+					<GlassCard className="mb-6 p-6 border border-accent-primary/20">
+						<div className="flex items-start gap-3">
+							<span className="text-accent-primary font-mono text-sm mt-0.5">→</span>
+							<div className="flex-1 space-y-2">
+								<h3 className="text-text-primary font-semibold">
+									Główna ścieżka: Claude Code / Cursor / Windsurf + API
+								</h3>
+								<p className="text-sm text-text-secondary leading-relaxed">
+									Pobierz <span className="text-text-primary font-medium">Starter Pack</span> i wrzuć{" "}
+									<code className="text-xs px-1.5 py-0.5 rounded bg-bg-elevated text-accent-primary">CLAUDE.md</code> do roota swojego projektu.
+									Asystent AI będzie znał kontekst misji i potrafi wywoływać NDQS API — pobierać aktywny quest, wysyłać PRD z pliku
+									{" "}(<code className="text-xs px-1.5 py-0.5 rounded bg-bg-elevated text-accent-primary">.md/.txt</code>),{" "}
+									output testów, URL-e deploymentu.
+								</p>
+								<p className="text-sm text-text-secondary leading-relaxed">
+									Formularze na stronie każdego questa działają — są dla szybkich testów i ludzi którzy wolą klikać.
+									Ale default flow to terminal + plik + API, bo tak realnie budujesz projekt.
+								</p>
 							</div>
 						</div>
 					</GlassCard>

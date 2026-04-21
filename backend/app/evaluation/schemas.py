@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class TextAnswerPayload(BaseModel):
-    answer: str = Field(..., min_length=1, max_length=5000)
+    answer: str = Field(..., min_length=1, max_length=50000)
 
 
 class UrlCheckPayload(BaseModel):
@@ -19,7 +19,7 @@ class QuizPayload(BaseModel):
 
 class CommandOutputPayload(BaseModel):
     command: str = Field(..., min_length=1, max_length=500)
-    output: str = Field(..., min_length=1, max_length=10000)
+    output: str = Field(..., min_length=1, max_length=50000)
 
 
 class SubmitRequest(BaseModel):

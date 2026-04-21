@@ -123,11 +123,12 @@ async def check_and_unlock_quests(db: AsyncSession, user_id: uuid.UUID, course_i
 
     Returns list of newly unlocked quest IDs.
     """
-    # Get user's artifact definition IDs
+    # Get user's artifact definition IDs as strings (required_artifact_ids comes from
+    # JSONB as a list of strings, while UserArtifact.artifact_definition_id is a UUID — compare as strings).
     artifact_result = await db.execute(
         select(UserArtifact.artifact_definition_id).where(UserArtifact.user_id == user_id)
     )
-    user_artifact_def_ids = set(artifact_result.scalars().all())
+    user_artifact_def_ids = {str(aid) for aid in artifact_result.scalars().all()}
 
     # Get all LOCKED quest states for this user in this course
     locked_result = await db.execute(
@@ -143,9 +144,7 @@ async def check_and_unlock_quests(db: AsyncSession, user_id: uuid.UUID, course_i
 
     unlocked_ids = []
     for quest_state, quest in locked_pairs:
-        required = set(quest.required_artifact_ids or [])
-        # Get the artifact_definition IDs for the required artifact_ids
-        # required_artifact_ids contains artifact_definition IDs directly
+        required = {str(rid) for rid in (quest.required_artifact_ids or [])}
         if required and required.issubset(user_artifact_def_ids):
             quest_state.state = "AVAILABLE"
             unlocked_ids.append(quest.id)

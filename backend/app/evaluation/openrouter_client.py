@@ -1,6 +1,7 @@
 """OpenRouter API client — LLM gateway for Game Master responses."""
 
 import json
+import re
 import asyncio
 
 import httpx
@@ -16,7 +17,7 @@ MAX_RETRIES = 3
 TIMEOUT_SECONDS = 30
 
 FALLBACK_RESPONSE = {
-    "passed": False,
+    "passed": None,  # None = evaluation unavailable, don't change quest state
     "narrative_response": "Ewaluacja trwa dłużej niż zwykle. Spróbuj ponownie za chwilę.",
     "quality_scores": None,
     "matched_failure": None,
@@ -70,6 +71,11 @@ async def call_llm(
 
             data = resp.json()
             content = data["choices"][0]["message"]["content"]
+            # Some models wrap JSON in markdown code fences despite response_format=json_object.
+            # Extract the outermost JSON object before parsing.
+            match = re.search(r"\{.*\}", content, re.DOTALL)
+            if match:
+                content = match.group(0)
             parsed = json.loads(content)
 
             # Validate required fields

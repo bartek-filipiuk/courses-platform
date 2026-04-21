@@ -116,6 +116,27 @@ export default function QuestPage() {
 					</GlassCard>
 				</div>
 
+				{/* API-first hint */}
+				<div className="mb-6 rounded-xl border border-accent-primary/20 bg-accent-primary/5 p-4">
+					<p className="text-xs text-text-secondary leading-relaxed">
+						<span className="text-accent-primary font-mono">→</span>{" "}
+						<span className="text-text-primary font-medium">Preferowany flow:</span> submituj przez API z Twojego projektu
+						(Claude Code / Cursor używają{" "}
+						<code className="text-[10px] px-1 py-0.5 rounded bg-bg-elevated text-accent-primary">CLAUDE.md</code>{" "}
+						ze Starter Pack).
+						{quest.evaluation_type === "text_answer" && (
+							<>
+								{" "}Dla długich odpowiedzi wyślij plik:{" "}
+								<code className="text-[10px] px-1 py-0.5 rounded bg-bg-elevated text-accent-primary">
+									POST /api/quests/{questId}/submit/file
+								</code>{" "}
+								(multipart, .md/.txt, 100 KB).
+							</>
+						)}
+						{" "}Formularz poniżej to szybka alternatywa.
+					</p>
+				</div>
+
 				{/* Submit form */}
 				<GlassCard className="mb-6">
 					<h2 className="text-lg font-semibold text-text-primary mb-4">Submit Answer</h2>

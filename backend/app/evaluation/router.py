@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,8 +27,8 @@ from app.rate_limit import limiter
 
 router = APIRouter(tags=["evaluation"])
 
-SUBMIT_RATE_LIMIT = "5/hour"
-HINT_RATE_LIMIT = "10/hour"
+SUBMIT_RATE_LIMIT = "10/hour"  # per-user per-quest (see _get_user_quest_key)
+HINT_RATE_LIMIT = "10/hour"    # per-user globally (max_hints per quest already enforced)
 
 # Payload validators per type
 PAYLOAD_VALIDATORS = {
@@ -51,8 +51,17 @@ def _get_user_id_or_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _get_user_quest_key(request: Request) -> str:
+    """Rate-limit scope: same user + same quest. Lets a student work on
+    multiple quests in parallel without one quest's retries eating budget
+    for another."""
+    user = _get_user_id_or_ip(request)
+    quest_id = request.path_params.get("quest_id", "global")
+    return f"{user}:{quest_id}"
+
+
 @router.post("/api/quests/{quest_id}/submit", response_model=EvaluationResponse)
-@limiter.limit(SUBMIT_RATE_LIMIT, key_func=_get_user_id_or_ip)
+@limiter.limit(SUBMIT_RATE_LIMIT, key_func=_get_user_quest_key)
 async def submit_answer(
     request: Request,
     quest_id: uuid.UUID,
@@ -107,6 +116,88 @@ async def submit_answer(
         course_model_id=course.model_id if course else None,
     )
     return result
+
+
+MAX_UPLOAD_BYTES = 100 * 1024  # 100 KB
+ALLOWED_UPLOAD_EXT = {".md", ".txt"}
+
+
+@router.post("/api/quests/{quest_id}/submit/file", response_model=EvaluationResponse)
+@limiter.limit(SUBMIT_RATE_LIMIT, key_func=_get_user_quest_key)
+async def submit_answer_from_file(
+    request: Request,
+    quest_id: uuid.UUID,
+    file: UploadFile = File(...),
+    token_data: dict = Depends(get_current_user_token),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Submit a text_answer by uploading a .md or .txt file.
+
+    Payload gets read into the standard text_answer pipeline. Only works for
+    quests whose evaluation_type is text_answer. For command_output, inline
+    the output in JSON — files there would obscure the command/output split.
+    """
+    user_id = uuid.UUID(token_data["sub"])
+
+    # Filename extension whitelist. MIME alone is spoofable (curl -F defaults to
+    # application/octet-stream for unknown types) so we gate on extension.
+    filename = (file.filename or "").lower()
+    if not any(filename.endswith(ext) for ext in ALLOWED_UPLOAD_EXT):
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported file type. Allowed: {sorted(ALLOWED_UPLOAD_EXT)}",
+        )
+
+    # Size guard (read up to limit+1 to detect overflow without loading full file first)
+    raw = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"File exceeds {MAX_UPLOAD_BYTES} bytes")
+
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded") from e
+
+    # Get quest and confirm it accepts text_answer
+    quest_result = await db.execute(select(Quest).where(Quest.id == quest_id))
+    quest = quest_result.scalar_one_or_none()
+    if not quest:
+        raise HTTPException(status_code=404, detail="Quest not found")
+    if quest.evaluation_type != "text_answer":
+        raise HTTPException(
+            status_code=400,
+            detail=f"File upload only supports text_answer quests, this is {quest.evaluation_type}",
+        )
+
+    # Reuse validator to enforce length bounds
+    TextAnswerPayload(answer=content)
+
+    # Reuse the same state/FSM path as JSON submit
+    qs_result = await db.execute(
+        select(QuestState).where(QuestState.user_id == user_id, QuestState.quest_id == quest_id)
+    )
+    quest_state = qs_result.scalar_one_or_none()
+    if not quest_state or quest_state.state not in ("IN_PROGRESS", "FAILED_ATTEMPT"):
+        raise HTTPException(status_code=400, detail="Quest is not in a submittable state")
+
+    quest_state.state = "EVALUATING"
+    quest_state.attempts += 1
+    await db.commit()
+
+    course_result = await db.execute(select(Course).where(Course.id == quest.course_id))
+    course = course_result.scalar_one_or_none()
+
+    return await evaluate_submission(
+        db=db,
+        user_id=user_id,
+        quest=quest,
+        quest_state=quest_state,
+        payload={"answer": content, "source_filename": filename},
+        course_persona_prompt=course.persona_prompt if course else None,
+        course_persona_name=course.persona_name if course else None,
+        course_global_context=course.global_context if course else None,
+        course_model_id=course.model_id if course else None,
+    )
 
 
 @router.post("/api/quests/{quest_id}/hint", response_model=HintResponse)
