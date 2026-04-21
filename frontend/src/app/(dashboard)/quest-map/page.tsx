@@ -1,185 +1,278 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import {
-	ReactFlow,
-	Background,
-	Controls,
-	MiniMap,
-	type Node,
-	type Edge,
-	type NodeTypes,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
-
-import QuestNode from "@/components/quest-map/QuestNode";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthFetch } from "@/lib/use-api";
+import QuestNode, { type QuestState } from "@/components/quest-map/QuestNode";
+import QuestEdge from "@/components/quest-map/QuestEdge";
+import QuestDetailPanel from "@/components/quest-map/QuestDetailPanel";
+import { mapDimensions, questPosition } from "@/components/quest-map/layout";
+import TopBar from "@/components/TopBar";
 
-interface QuestItem {
+interface QuestListItem {
 	id: string;
 	title: string;
 	sort_order: number;
 	evaluation_type: string;
-	state: string;
-	has_artifact: boolean;
+	state: QuestState;
 	skills: string[];
+	has_artifact: boolean;
 }
 
-const nodeTypes: NodeTypes = {
-	quest: QuestNode,
-};
-
-const DS_COLORS = {
-	success: '#10B981',
-	primary: '#E5B55C',
-	info: '#3B82F6',
-	muted: 'rgba(255,255,255,0.12)',
-};
+interface CourseDetail {
+	id: string;
+	title: string;
+	narrative_title: string | null;
+	persona_name: string | null;
+}
 
 export default function QuestMapPage() {
 	return (
-		<Suspense fallback={<div className="min-h-screen bg-bg-base flex items-center justify-center"><div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" /></div>}>
+		<Suspense
+			fallback={
+				<div className="min-h-screen flex items-center justify-center">
+					<div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
+				</div>
+			}
+		>
 			<QuestMapContent />
 		</Suspense>
 	);
 }
 
 function QuestMapContent() {
+	const router = useRouter();
 	const searchParams = useSearchParams();
 	const courseId = searchParams.get("courseId");
-	const { data: quests, loading } = useAuthFetch<QuestItem[]>(
+	const questIdParam = searchParams.get("questId");
+
+	const { data: quests } = useAuthFetch<QuestListItem[]>(
 		`/api/courses/${courseId}/quests`,
 		{ skip: !courseId },
 	);
-	const [selectedQuest, setSelectedQuest] = useState<QuestItem | null>(null);
+	const { data: course } = useAuthFetch<CourseDetail>(
+		`/api/courses/${courseId}`,
+		{ skip: !courseId },
+	);
 
-	const questList = quests || [];
+	const sortedQuests = useMemo(
+		() => (quests ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
+		[quests],
+	);
 
-	const { nodes, edges } = useMemo(() => {
-		const n: Node[] = questList.map((q, i) => ({
-			id: q.id,
-			type: "quest",
-			position: { x: 250, y: i * 150 },
-			data: {
-				title: q.title,
-				state: q.state,
-				hasArtifact: q.has_artifact,
-				evaluationType: q.evaluation_type,
-			},
-		}));
-
-		const e: Edge[] = [];
-		for (let i = 1; i < questList.length; i++) {
-			e.push({
-				id: `e-${questList[i - 1].id}-${questList[i].id}`,
-				source: questList[i - 1].id,
-				target: questList[i].id,
-				animated: questList[i].state === "AVAILABLE",
-				style: { stroke: "var(--accent-primary)", strokeWidth: 2 },
-			});
+	const [selectedId, setSelectedId] = useState<string | null>(null);
+	useEffect(() => {
+		if (!sortedQuests.length) return;
+		if (questIdParam && sortedQuests.some((q) => q.id === questIdParam)) {
+			setSelectedId(questIdParam);
+			return;
 		}
+		if (selectedId && sortedQuests.some((q) => q.id === selectedId)) return;
+		const inProgress = sortedQuests.find((q) => q.state === "IN_PROGRESS");
+		const available = sortedQuests.find((q) => q.state === "AVAILABLE");
+		setSelectedId(inProgress?.id ?? available?.id ?? null);
+	}, [sortedQuests, questIdParam, selectedId]);
 
-		return { nodes: n, edges: e };
-	}, [questList]);
+	const selectedQuest = sortedQuests.find((q) => q.id === selectedId) ?? null;
 
-	const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-		const quest = questList.find((q) => q.id === node.id);
-		setSelectedQuest(quest || null);
-	}, [questList]);
+	const positions = useMemo(
+		() => sortedQuests.map((_, idx) => questPosition(idx)),
+		[sortedQuests],
+	);
+	const dims = mapDimensions(sortedQuests.length || 1);
 
-	if (!courseId) {
-		return (
-			<div className="min-h-screen bg-bg-base flex items-center justify-center">
-				<p className="text-text-secondary">Select a course to view quest map.</p>
-			</div>
-		);
+	const summary = useMemo(() => {
+		const counts = { completed: 0, inProgress: 0, available: 0, locked: 0, failed: 0 };
+		for (const q of sortedQuests) {
+			if (q.state === "COMPLETED") counts.completed++;
+			else if (q.state === "IN_PROGRESS") counts.inProgress++;
+			else if (q.state === "AVAILABLE") counts.available++;
+			else if (q.state === "LOCKED") counts.locked++;
+			else if (q.state === "FAILED_ATTEMPT") counts.failed++;
+		}
+		return counts;
+	}, [sortedQuests]);
+
+	function startQuest(questId: string) {
+		router.push(`/quest/${questId}`);
 	}
 
-	if (loading) {
-		return (
-			<div className="min-h-screen bg-bg-base flex items-center justify-center">
-				<div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
-			</div>
-		);
-	}
+	const narrativeTitle = course?.narrative_title ?? course?.title ?? "Operation";
 
 	return (
-		<div className="h-screen bg-bg-base flex">
-			{/* Map */}
-			<div className="flex-1">
-				<ReactFlow
-					nodes={nodes}
-					edges={edges}
-					nodeTypes={nodeTypes}
-					onNodeClick={onNodeClick}
-					fitView
-					className="bg-bg-base"
-				>
-					<Background color="rgba(255,255,255,0.12)" gap={20} />
-					<Controls className="!bg-bg-elevated !border-border-default !rounded-xl" />
-					<MiniMap
-						className="!bg-bg-elevated !border-border-default !rounded-xl"
-						nodeColor={(n) => {
-							const state = (n.data as Record<string, unknown>)?.state as string;
-							if (state === "COMPLETED") return DS_COLORS.success;
-							if (state === "AVAILABLE") return DS_COLORS.primary;
-							if (state === "IN_PROGRESS") return DS_COLORS.info;
-							return DS_COLORS.muted;
-						}}
-					/>
-				</ReactFlow>
-			</div>
+		<div className="flex flex-col h-screen">
+			<TopBar
+				breadcrumb={[
+					{ label: "Command Center" },
+					{ label: narrativeTitle },
+					{ label: "Quest Map", mono: true },
+				]}
+			/>
 
-			{/* Quest Detail Panel (slide-in) */}
-			{selectedQuest && (
-				<div className="w-96 border-l border-border-default bg-bg-elevated p-6 overflow-y-auto">
-					<div className="flex justify-between items-start mb-4">
-						<h2 className="text-xl font-bold text-text-primary">{selectedQuest.title}</h2>
-						<button
-							type="button"
-							onClick={() => setSelectedQuest(null)}
-							className="text-text-secondary hover:text-text-primary"
-						>
-							&times;
-						</button>
+			<div className="relative flex-1 overflow-hidden">
+				<div className="relative z-[2] px-8 pt-5 pb-3">
+					<div
+						className="mini-label"
+						style={{ color: "var(--accent-primary)", marginBottom: 6 }}
+					>
+						// OPERATION ROUTE · {narrativeTitle.toUpperCase()}
 					</div>
-
-					<div className="space-y-4">
+					<div className="flex items-center justify-between gap-4 flex-wrap">
 						<div>
-							<span className="text-xs text-text-secondary uppercase">Status</span>
-							<p className="text-sm text-text-primary font-mono">{selectedQuest.state}</p>
-						</div>
-
-						<div>
-							<span className="text-xs text-text-secondary uppercase">Type</span>
-							<p className="text-sm text-text-primary font-mono">{selectedQuest.evaluation_type}</p>
-						</div>
-
-						{selectedQuest.skills.length > 0 && (
-							<div>
-								<span className="text-xs text-text-secondary uppercase">Skills</span>
-								<div className="flex flex-wrap gap-1 mt-1">
-									{selectedQuest.skills.map((s) => (
-										<span key={s} className="px-2 py-0.5 text-xs bg-accent-primary/20 text-accent-primary rounded-full">
-											{s}
-										</span>
-									))}
-								</div>
+							<h1 className="text-[26px] font-semibold tracking-[-0.02em]">Quest Map</h1>
+							<div className="text-[13px] text-text-secondary mt-1">
+								{sortedQuests.length} węzłów · {summary.completed} ukończone · {summary.inProgress} w trakcie ·{" "}
+								{summary.available} dostępne · {summary.locked} zablokowane
+								{summary.failed > 0 && ` · ${summary.failed} do poprawy`}
 							</div>
-						)}
+						</div>
+						<div className="flex gap-2">
+							<LegendPill color="#E5B55C" glow label="In progress" />
+							<LegendPill color="#10B981" label="Done" />
+							<LegendPill color="rgba(255,255,255,0.15)" label="Locked" />
+						</div>
+					</div>
+				</div>
 
-						{selectedQuest.state !== "LOCKED" && (
-							<a
-								href={`/quest/${selectedQuest.id}`}
-								className="block w-full text-center py-2 rounded-xl bg-accent-primary text-text-on-accent font-medium hover:bg-accent-primary-hover transition-all"
+				<div className="relative overflow-auto" style={{ height: "calc(100% - 90px)" }}>
+					<div
+						className="relative mx-auto my-5"
+						style={{ width: dims.width, height: dims.height }}
+					>
+						<div
+							className="absolute inset-0 pointer-events-none"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0)",
+								backgroundSize: "32px 32px",
+								opacity: 0.6,
+							}}
+						/>
+
+						<svg
+							width={dims.width}
+							height={dims.height}
+							className="absolute inset-0 pointer-events-none"
+						>
+							<title>Quest connection map</title>
+							{sortedQuests.map((q, i) => {
+								if (i === 0) return null;
+								const from = positions[i - 1];
+								const to = positions[i];
+								const active =
+									sortedQuests[i - 1].state === "COMPLETED" && q.state !== "LOCKED";
+								return (
+									<QuestEdge
+										key={`edge-${q.id}`}
+										from={from}
+										to={to}
+										active={active}
+										pathId={`edge-path-${q.id}`}
+									/>
+								);
+							})}
+						</svg>
+
+						{sortedQuests.map((q, i) => (
+							<QuestNode
+								key={q.id}
+								quest={{
+									id: q.id,
+									title: q.title,
+									sortOrder: q.sort_order,
+									state: q.state,
+								}}
+								position={positions[i]}
+								selected={selectedId === q.id}
+								onClick={() => setSelectedId(q.id)}
+							/>
+						))}
+
+						<div
+							className="mono absolute"
+							style={{
+								left: 40,
+								top: 40,
+								padding: "10px 14px",
+								borderRadius: 8,
+								background: "rgba(0,0,0,0.5)",
+								border: "1px solid rgba(255,255,255,0.05)",
+								fontSize: 10,
+								letterSpacing: "0.15em",
+								color: "#94A3B8",
+							}}
+						>
+							ROUTE_ID: {(courseId ?? "—").slice(0, 8).toUpperCase()}
+							<br />
+							<span style={{ color: "#475569" }}>─────────────</span>
+							<br />
+							NODES: {sortedQuests.length} · GM: {course?.persona_name ?? "—"}
+						</div>
+
+						{sortedQuests.length > 0 && (
+							<div
+								className="mono absolute"
+								style={{
+									right: 40,
+									bottom: 40,
+									padding: "10px 14px",
+									borderRadius: 8,
+									background: "rgba(0,0,0,0.5)",
+									border: "1px solid rgba(229,181,92,0.2)",
+									fontSize: 10,
+									letterSpacing: "0.15em",
+									color: "#E5B55C",
+								}}
 							>
-								{selectedQuest.state === "COMPLETED" ? "View Debrief" : "Open Quest"}
-							</a>
+								FINAL NODE: {sortedQuests[sortedQuests.length - 1].title.toUpperCase()}
+							</div>
 						)}
 					</div>
 				</div>
-			)}
+
+				{selectedQuest && (
+					<QuestDetailPanel
+						quest={selectedQuest}
+						onClose={() => setSelectedId(null)}
+						onStartQuest={startQuest}
+					/>
+				)}
+
+				{!courseId && (
+					<div className="absolute inset-0 flex items-center justify-center text-text-secondary">
+						Wybierz operację w Marketplace, żeby zobaczyć mapę questów.
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function LegendPill({
+	color,
+	label,
+	glow,
+}: {
+	color: string;
+	label: string;
+	glow?: boolean;
+}) {
+	return (
+		<div
+			className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px]"
+			style={{
+				background: "rgba(255,255,255,0.03)",
+				border: "1px solid rgba(255,255,255,0.06)",
+			}}
+		>
+			<span
+				className="w-2 h-2 rounded-full"
+				style={{
+					background: color,
+					boxShadow: glow ? `0 0 6px ${color}` : undefined,
+				}}
+			/>
+			{label}
 		</div>
 	);
 }

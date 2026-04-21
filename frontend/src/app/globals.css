@@ -143,6 +143,285 @@ select:focus-visible,
 	box-shadow: var(--focus-ring);
 }
 
+/* ============================================================
+   NDQS Student Prototype — imported helpers (bundle)
+   ============================================================ */
+
+/* Aurora background — 3 orbs, staggered animation */
+.aurora-bg {
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	overflow: hidden;
+	background: var(--bg-base);
+	pointer-events: none;
+}
+.aurora-orb {
+	position: absolute;
+	border-radius: 9999px;
+	filter: blur(120px);
+	will-change: transform;
+}
+.aurora-orb.purple {
+	top: -40%;
+	left: -20%;
+	width: 60%;
+	height: 60%;
+	background: rgba(124, 58, 237, 0.18);
+	animation: aurora-drift 22s ease-in-out infinite alternate;
+}
+.aurora-orb.gold {
+	bottom: -30%;
+	right: -15%;
+	width: 50%;
+	height: 50%;
+	background: rgba(229, 181, 92, 0.1);
+	animation: aurora-drift 28s ease-in-out infinite alternate-reverse;
+	animation-delay: -10s;
+}
+.aurora-orb.blue {
+	top: 25%;
+	left: 40%;
+	width: 35%;
+	height: 35%;
+	background: rgba(59, 130, 246, 0.06);
+	animation: aurora-drift 25s ease-in-out infinite alternate;
+	animation-delay: -5s;
+}
+@keyframes aurora-drift {
+	0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+	50%  { transform: translate(4%, -3%) rotate(6deg) scale(1.05); }
+	100% { transform: translate(-3%, 2%) rotate(-4deg) scale(0.97); }
+}
+
+/* Noise overlay — subtle film grain */
+.noise-overlay {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: -1;
+	opacity: 0.035;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Glass helper (reusable inline variant of GlassCard) */
+.glass {
+	position: relative;
+	overflow: hidden;
+	border-radius: 16px;
+	background: rgba(255, 255, 255, 0.03);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	box-shadow: var(--shadow-glass);
+	transition: background var(--transition-slow), border-color var(--transition-slow), transform var(--transition-slow);
+}
+.glass:hover {
+	background: rgba(255, 255, 255, 0.055);
+	border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Monospace utility */
+.mono {
+	font-family: var(--font-geist-mono), "JetBrains Mono", monospace;
+}
+
+/* Typography helpers */
+.label {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--text-secondary);
+}
+.mini-label {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+	color: var(--text-muted);
+}
+
+/* Buttons */
+.btn {
+	font-family: inherit;
+	cursor: pointer;
+	border: 0;
+	transition: all var(--transition-base);
+	font-weight: 500;
+}
+.btn-primary {
+	position: relative;
+	padding: 12px 22px;
+	border-radius: 10px;
+	background: var(--accent-primary);
+	color: var(--text-on-accent);
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+.btn-primary:hover {
+	background: var(--accent-primary-hover);
+	box-shadow: 0 0 30px rgba(229, 181, 92, 0.45);
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-ghost {
+	padding: 12px 22px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.03);
+	color: var(--text-primary);
+	border: 1px solid var(--border-default);
+	backdrop-filter: blur(10px);
+}
+.btn-ghost:hover {
+	background: rgba(255, 255, 255, 0.07);
+	border-color: rgba(255, 255, 255, 0.2);
+}
+.btn-sm {
+	padding: 8px 14px;
+	font-size: 13px;
+	border-radius: 8px;
+}
+
+/* Status badges */
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border-radius: 6px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	line-height: 1;
+}
+.badge .dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 999px;
+}
+.badge-gold    { background: rgba(229, 181, 92, 0.12); color: var(--accent-primary); border: 1px solid rgba(229, 181, 92, 0.22); }
+.badge-gold .dot { background: var(--accent-primary); animation: pulse-dot 2s ease-in-out infinite; }
+.badge-success { background: rgba(16, 185, 129, 0.12); color: var(--accent-success); border: 1px solid rgba(16, 185, 129, 0.22); }
+.badge-success .dot { background: var(--accent-success); }
+.badge-muted   { background: rgba(255, 255, 255, 0.04); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.06); }
+.badge-muted .dot { background: var(--text-muted); }
+.badge-error   { background: rgba(239, 68, 68, 0.12); color: var(--accent-error); border: 1px solid rgba(239, 68, 68, 0.22); }
+.badge-error .dot { background: var(--accent-error); }
+.badge-purple  { background: rgba(124, 58, 237, 0.12); color: #A78BFA; border: 1px solid rgba(124, 58, 237, 0.28); }
+.badge-purple .dot { background: #A78BFA; }
+
+@keyframes pulse-dot {
+	0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+	50%      { opacity: 0.6; }
+}
+
+/* Inputs */
+.input {
+	width: 100%;
+	padding: 12px 14px;
+	border-radius: 10px;
+	background: var(--bg-input);
+	border: 1px solid var(--border-default);
+	color: var(--text-primary);
+	font-family: inherit;
+	font-size: 14px;
+	transition: all var(--transition-base);
+}
+.input:focus {
+	outline: none;
+	border-color: var(--border-active);
+	box-shadow: 0 0 20px rgba(229, 181, 92, 0.2);
+	background: rgba(255, 255, 255, 0.08);
+}
+.input::placeholder { color: var(--text-muted); }
+textarea.input {
+	resize: vertical;
+	min-height: 120px;
+	font-family: var(--font-geist-mono), monospace;
+}
+
+/* Segmented progress */
+.segbar {
+	display: flex;
+	gap: 5px;
+	align-items: center;
+}
+.segbar .seg {
+	height: 6px;
+	flex: 1;
+	border-radius: 2px;
+	background: rgba(255, 255, 255, 0.08);
+	transition: all var(--transition-slow);
+}
+.segbar .seg.done {
+	background: var(--accent-primary);
+	box-shadow: 0 0 8px rgba(229, 181, 92, 0.45);
+}
+.segbar .seg.active {
+	background: rgba(229, 181, 92, 0.55);
+	animation: seg-pulse 1.6s ease-in-out infinite;
+}
+@keyframes seg-pulse {
+	0%, 100% { opacity: 0.55; }
+	50%      { opacity: 1; box-shadow: 0 0 10px rgba(229, 181, 92, 0.5); }
+}
+
+/* Utility animations */
+.fade-in  { animation: fade-in 0.4s ease-out both; }
+.slide-up { animation: slide-up 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes fade-in {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
+@keyframes slide-up {
+	from { opacity: 0; transform: translateY(16px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Blinking cursor (terminal prompt) */
+.blink { animation: blink 1s steps(1) infinite; }
+@keyframes blink {
+	50% { opacity: 0; }
+}
+
+/* Quest Map node pulse (AVAILABLE) + glow (IN_PROGRESS) + spin (loader) */
+@keyframes node-pulse {
+	0%, 100% { box-shadow: 0 0 0 0 rgba(229, 181, 92, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3); }
+	50%      { box-shadow: 0 0 0 10px rgba(229, 181, 92, 0),   0 8px 24px rgba(0, 0, 0, 0.3); }
+}
+@keyframes node-glow {
+	0%, 100% { box-shadow: 0 0 18px rgba(229, 181, 92, 0.3),  0 8px 32px rgba(0, 0, 0, 0.4); }
+	50%      { box-shadow: 0 0 36px rgba(229, 181, 92, 0.55), 0 8px 32px rgba(0, 0, 0, 0.4); }
+}
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+@keyframes panel-slide-in {
+	from { transform: translateX(100%); }
+	to   { transform: translateX(0); }
+}
+
+/* Placeholder stripe fill (locked artifact states) */
+.stripes {
+	background-image: repeating-linear-gradient(
+		135deg,
+		rgba(255, 255, 255, 0.04) 0,
+		rgba(255, 255, 255, 0.04) 2px,
+		transparent 2px,
+		transparent 12px
+	);
+}
+
+/* Scrollbars — subtle dark theme */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.06);
+	border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.12); }
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
 	*,
