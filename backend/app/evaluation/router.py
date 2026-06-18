@@ -259,6 +259,7 @@ Give a Socratic hint. Ask a question that guides them toward the solution."""
     llm_result = await call_llm(
         system_prompt, user_prompt,
         model=course.model_id if course else None,
+        user_id=user_id,
     )
     hint_text = llm_result.get("narrative_response", llm_result.get("hint", "Think about what the briefing is asking you to do."))
 

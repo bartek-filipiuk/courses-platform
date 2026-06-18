@@ -103,6 +103,7 @@ async def evaluate_submission(
         persona_name=course_persona_name,
         global_context=course_global_context,
         model_id=course_model_id,
+        user_id=user_id,
     )
 
     passed = llm_result.get("passed")

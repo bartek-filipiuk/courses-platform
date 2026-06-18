@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     NDQS_SERVICE_TOKEN: str = ""
     BREVO_API_KEY: str = ""
     BREVO_SENDER_EMAIL: str = "bartek@devince.dev"
+    LLM_DAILY_CAP_PER_USER: int = 200
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
