@@ -6,6 +6,8 @@ GET  /api/auth/magic/verify  — exchange a single-use magic token for an access
 JWT; 400 on any invalid/expired/replayed token.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
@@ -19,6 +21,8 @@ from app.config import settings
 from app.database import get_db
 from app.email import send_magic_link_email
 from app.rate_limit import LOGIN_RATE_LIMIT, _get_user_id_or_ip, limiter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth/magic", tags=["auth-magic"])
 
@@ -39,7 +43,17 @@ async def magic_request(
     if user:  # silent for unknown emails — never leak existence
         token = create_magic_token(str(user.id), user.email)
         link = f"{settings.FRONTEND_URL}/auth/magic?token={token}"
-        await send_magic_link_email(user.email, link)
+        # Best-effort send: a Brevo failure must NOT surface as a 500, which
+        # would leak email existence (known email → send attempted → 500;
+        # unknown email → no send → 200). Always return 200 {"sent": True}.
+        try:
+            await send_magic_link_email(user.email, link)
+        except Exception:
+            logger.warning(
+                "magic-link email failed for %s; reporting sent anyway (no-leak)",
+                user.email,
+                exc_info=True,
+            )
     return {"sent": True}
 
 
