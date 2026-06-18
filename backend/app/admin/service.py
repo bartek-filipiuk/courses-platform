@@ -13,6 +13,7 @@ from app.auth.models import User
 from app.config import settings
 from app.courses.models import Course, Enrollment
 from app.email import send_magic_link_email
+from app.evaluation.models import record_email_failure
 from app.quests.state_machine import initialize_quest_states
 
 logger = logging.getLogger(__name__)
@@ -99,13 +100,14 @@ async def enroll_user_by_email(
     link = f"{settings.FRONTEND_URL}/auth/magic?token={token}"
     try:
         await send_magic_link_email(user.email, link)
-    except Exception:
+    except Exception as exc:
         logger.warning(
             "welcome email failed for %s (course %s); enrollment already granted",
             user.email,
             course_id,
             exc_info=True,
         )
+        await record_email_failure(db, user.email, "welcome", str(exc), user_id=user.id)
 
     # 5. Return outcome.
     return {

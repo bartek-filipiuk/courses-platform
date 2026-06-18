@@ -20,6 +20,7 @@ from app.auth.models import User
 from app.config import settings
 from app.database import get_db
 from app.email import send_magic_link_email
+from app.evaluation.models import record_email_failure
 from app.rate_limit import LOGIN_RATE_LIMIT, _get_user_id_or_ip, limiter
 
 logger = logging.getLogger(__name__)
@@ -48,12 +49,13 @@ async def magic_request(
         # unknown email → no send → 200). Always return 200 {"sent": True}.
         try:
             await send_magic_link_email(user.email, link)
-        except Exception:
+        except Exception as exc:
             logger.warning(
                 "magic-link email failed for %s; reporting sent anyway (no-leak)",
                 user.email,
                 exc_info=True,
             )
+            await record_email_failure(db, user.email, "magic", str(exc), user_id=user.id)
     return {"sent": True}
 
 
