@@ -1,7 +1,10 @@
 """Submission, CommsLog, and EmailFailure models."""
 
+import logging
 import uuid
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -59,10 +62,8 @@ async def record_email_failure(
 ) -> None:
     """Durably record a swallowed email failure. NEVER raises — a logging-path
     failure must not break the request."""
-    import logging as _logging
-    _logger = _logging.getLogger(__name__)
     try:
         db.add(EmailFailure(email=email, email_type=email_type, error=str(error), user_id=user_id))
         await db.commit()
     except Exception:
-        _logger.warning("record_email_failure: failed to persist failure row", exc_info=True)
+        logger.warning("record_email_failure: failed to persist failure row", exc_info=True)
