@@ -180,3 +180,76 @@ async def test_enroll_rejects_bad_service_token(monkeypatch):
             json={"email": "x@y.pl", "course_id": str(uuid.uuid4())},
         )
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_revoke_sets_revoked_at(monkeypatch):
+    """With the service token, revoke-enrollment finds the enrollment, stamps
+    revoked_at, commits, and returns status='revoked'."""
+    monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
+    db = AsyncMock()
+    existing_user = MagicMock()
+    existing_user.id = uuid.uuid4()
+    existing_user.email = "buyer@x.pl"
+    enrollment = MagicMock()
+    enrollment.revoked_at = None
+    # 1st execute: user lookup -> existing ; 2nd: enrollment lookup -> enrollment
+    user_res = MagicMock()
+    user_res.scalar_one_or_none.return_value = existing_user
+    enr_res = MagicMock()
+    enr_res.scalar_one_or_none.return_value = enrollment
+    db.execute.side_effect = [user_res, enr_res]
+    app.dependency_overrides[get_db] = _override_db(db)
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://t"
+        ) as c:
+            r = await c.post(
+                "/api/admin/revoke-enrollment",
+                headers={"X-Service-Token": "secret"},
+                json={"email": "buyer@x.pl", "course_id": str(uuid.uuid4())},
+            )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] == "revoked"
+        assert enrollment.revoked_at is not None
+        db.commit.assert_awaited()
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_revoke_missing_enrollment_is_idempotent(monkeypatch):
+    """Revoking a non-existent enrollment returns status='not_found' (idempotent,
+    no commit, no crash)."""
+    monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
+    db = AsyncMock()
+    user_res = MagicMock()
+    user_res.scalar_one_or_none.return_value = None  # no such user
+    db.execute.side_effect = [user_res]
+    app.dependency_overrides[get_db] = _override_db(db)
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://t"
+        ) as c:
+            r = await c.post(
+                "/api/admin/revoke-enrollment",
+                headers={"X-Service-Token": "secret"},
+                json={"email": "ghost@x.pl", "course_id": str(uuid.uuid4())},
+            )
+        assert r.status_code == 200
+        assert r.json()["status"] == "not_found"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_revoke_rejects_bad_service_token(monkeypatch):
+    monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+        r = await c.post(
+            "/api/admin/revoke-enrollment",
+            headers={"X-Service-Token": "wrong"},
+            json={"email": "x@y.pl", "course_id": str(uuid.uuid4())},
+        )
+    assert r.status_code == 401

@@ -7,6 +7,7 @@ consume quest/eval endpoints.
 """
 
 import uuid  # noqa: F401  (kept for parity with sibling test modules)
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -169,6 +170,41 @@ async def test_starter_pack_for_non_enrolled_user_403(student_token):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
             r = await c.get(
                 f"/api/courses/{course_id}/starter-pack", headers=_auth(student_token)
+            )
+        assert r.status_code == 403
+    app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_submit_for_revoked_enrollment_403(student_token):
+    """submit for a quest in a course the user WAS enrolled in but has been
+    REVOKED (refund/chargeback) -> 403.
+
+    Task 8 adds `Enrollment.revoked_at IS NULL` to the access query, so a row
+    with a non-None revoked_at no longer matches and `.first()` returns None.
+    The mock models that filtered query: the revoked enrollment is excluded, so
+    the guard must reject the request even though the user once had access.
+    """
+    db = AsyncMock()
+    quest = MagicMock()
+    quest.evaluation_type = "text_answer"
+    quest.id = uuid4()
+    qres = MagicMock()
+    qres.scalar_one_or_none.return_value = quest
+    # The enrollment exists but is revoked; the `revoked_at IS NULL` clause in
+    # the access query excludes it, so the filtered lookup yields no row.
+    revoked_enrollment = MagicMock()
+    revoked_enrollment.revoked_at = datetime.now(timezone.utc)
+    enr = MagicMock()
+    enr.first.return_value = None  # revoked row filtered out by revoked_at IS NULL
+    db.execute.side_effect = [qres, enr]
+    _override(db)
+    with patch("app.auth.dependencies.is_token_blacklisted", return_value=False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+            r = await c.post(
+                f"/api/quests/{quest.id}/submit",
+                headers=_auth(student_token),
+                json={"type": "text_answer", "payload": {"answer": "x"}},
             )
         assert r.status_code == 403
     app.dependency_overrides.pop(get_db, None)

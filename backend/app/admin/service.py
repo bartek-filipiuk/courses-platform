@@ -2,6 +2,7 @@
 
 import logging
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -83,3 +84,38 @@ async def enroll_user_by_email(
         "status": "enrolled",
         "created_user": created_user,
     }
+
+
+async def revoke_enrollment(
+    db: AsyncSession, email: str, course_id: uuid.UUID
+) -> dict:
+    """Revoke a buyer's course access (refund/chargeback).
+
+    Finds the user by email and the enrollment by (user_id, course_id), stamps
+    `revoked_at = now()`, and commits. Idempotent: a missing user / missing
+    enrollment returns {"status": "not_found"} rather than raising, and a
+    re-revoke simply re-stamps revoked_at. After this, the enrollment guards in
+    `app/courses/access.py` (which require `revoked_at IS NULL`) 403 the user.
+    """
+    # 1. Find the user by email; absent -> not_found (idempotent, no crash).
+    res = await db.execute(select(User).where(User.email == email))
+    user = res.scalar_one_or_none()
+    if user is None:
+        return {"email": email, "course_id": str(course_id), "status": "not_found"}
+
+    # 2. Find the enrollment by (user_id, course_id); absent -> not_found.
+    res = await db.execute(
+        select(Enrollment).where(
+            Enrollment.user_id == user.id,
+            Enrollment.course_id == course_id,
+        )
+    )
+    enrollment = res.scalar_one_or_none()
+    if enrollment is None:
+        return {"email": email, "course_id": str(course_id), "status": "not_found"}
+
+    # 3. Stamp revoked_at and commit.
+    enrollment.revoked_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    return {"email": email, "course_id": str(course_id), "status": "revoked"}
