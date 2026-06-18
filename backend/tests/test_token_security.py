@@ -2,9 +2,41 @@
 
 import hashlib
 import uuid
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+
+def _fake_db() -> AsyncMock:
+    """AsyncMock session that records `add`ed ApiKey rows and serves them back."""
+    rows: list = []
+    db = AsyncMock()
+    db.add = MagicMock(side_effect=rows.append)
+    db.commit = AsyncMock()
+
+    async def _execute(stmt):
+        wanted: set = set()
+        for crit in getattr(stmt.whereclause, "clauses", [stmt.whereclause]):
+            val = getattr(getattr(crit, "right", None), "value", None)
+            if val is not None:
+                wanted.add(val)
+        matched = [
+            r
+            for r in rows
+            if getattr(r, "key_hash", None) in wanted
+            or str(getattr(r, "user_id", None)) in {str(w) for w in wanted}
+        ]
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = matched[0] if matched else None
+        scalars = MagicMock()
+        scalars.all.return_value = matched
+        result.scalars.return_value = scalars
+        return result
+
+    db.execute = AsyncMock(side_effect=_execute)
+    db._rows = rows  # noqa: SLF001
+    return db
 
 
 @pytest.fixture
@@ -91,33 +123,43 @@ class TestRefreshTokenRotation:
 
 
 class TestApiKeyHashing:
-    def test_api_key_stored_as_sha256_hash(self) -> None:
-        from app.auth.api_keys import _api_key_store, generate_api_key
-
-        result = generate_api_key(user_id="user1", name="test")
-        raw_key = result["key"]
-        expected_hash = hashlib.sha256(raw_key.encode()).hexdigest()
-        assert expected_hash in _api_key_store
-
-    def test_raw_key_not_stored(self) -> None:
-        from app.auth.api_keys import _api_key_store, generate_api_key
-
-        result = generate_api_key(user_id="user1", name="test")
-        raw_key = result["key"]
-        for info in _api_key_store.values():
-            assert raw_key not in str(info.values())
-
-    def test_api_key_has_ndqs_prefix(self) -> None:
+    @pytest.mark.asyncio
+    async def test_api_key_stored_as_sha256_hash(self) -> None:
         from app.auth.api_keys import generate_api_key
 
-        result = generate_api_key(user_id="user1", name="test")
+        db = _fake_db()
+        result = await generate_api_key(db, user_id=str(uuid.uuid4()), name="test")
+        expected_hash = hashlib.sha256(result["key"].encode()).hexdigest()
+        assert db._rows[0].key_hash == expected_hash  # noqa: SLF001
+
+    @pytest.mark.asyncio
+    async def test_raw_key_not_stored(self) -> None:
+        from app.auth.api_keys import generate_api_key
+
+        db = _fake_db()
+        result = await generate_api_key(db, user_id=str(uuid.uuid4()), name="test")
+        raw_key = result["key"]
+        stored = db._rows[0]  # noqa: SLF001
+        for attr in ("key_hash", "key_prefix", "name"):
+            assert raw_key != getattr(stored, attr)
+
+    @pytest.mark.asyncio
+    async def test_api_key_has_ndqs_prefix(self) -> None:
+        from app.auth.api_keys import generate_api_key
+
+        db = _fake_db()
+        result = await generate_api_key(db, user_id=str(uuid.uuid4()), name="test")
         assert result["key"].startswith("ndqs_")
 
-    def test_list_does_not_expose_hash(self, auth_headers: dict) -> None:
+    @pytest.mark.asyncio
+    async def test_list_does_not_expose_hash(self) -> None:
         """list_user_keys should not include key_hash in output."""
         from app.auth.api_keys import generate_api_key, list_user_keys
 
-        generate_api_key(user_id="hash-test-user", name="test")
-        keys = list_user_keys(user_id="hash-test-user")
+        db = _fake_db()
+        user_id = str(uuid.uuid4())
+        await generate_api_key(db, user_id=user_id, name="test")
+        keys = await list_user_keys(db, user_id=user_id)
+        assert len(keys) == 1
         for key_info in keys:
             assert "key_hash" not in key_info

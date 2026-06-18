@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -16,6 +17,28 @@ async def client():
         base_url="http://testserver",
     ) as ac:
         yield ac
+
+
+@pytest.fixture
+def mock_db():
+    """Override get_db with an empty fake session (no api key matches -> 401 path)."""
+    from app.database import get_db
+    from app.main import app
+
+    db = AsyncMock()
+    empty = MagicMock()
+    empty.scalar_one_or_none.return_value = None
+    scalars = MagicMock()
+    scalars.all.return_value = []
+    empty.scalars.return_value = scalars
+    db.execute = AsyncMock(return_value=empty)
+
+    async def _override():
+        yield db
+
+    app.dependency_overrides[get_db] = _override
+    yield db
+    app.dependency_overrides.pop(get_db, None)
 
 
 class TestUnauthorizedAccess:
@@ -41,7 +64,9 @@ class TestUnauthorizedAccess:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_me_with_invalid_api_key_returns_401(self, client: AsyncClient) -> None:
+    async def test_me_with_invalid_api_key_returns_401(
+        self, client: AsyncClient, mock_db: AsyncMock
+    ) -> None:
         response = await client.get(
             "/api/auth/me",
             headers={"X-API-Key": "ndqs_invalid_key_here"},

@@ -150,21 +150,26 @@ async def api_key_generate(
     request: Request,
     body: GenerateApiKeyRequest,
     token_data: dict = Depends(get_current_user_token),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
-    return generate_api_key(user_id=token_data["sub"], name=body.name)
+    return await generate_api_key(db, user_id=token_data["sub"], name=body.name)
 
 
 @router.get("/api-key/list")
-async def api_key_list(token_data: dict = Depends(get_current_user_token)) -> list[dict]:
-    return list_user_keys(user_id=token_data["sub"])
+async def api_key_list(
+    token_data: dict = Depends(get_current_user_token),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    return await list_user_keys(db, user_id=token_data["sub"])
 
 
 @router.delete("/api-key/revoke/{key_id}")
 async def api_key_revoke(
     key_id: UUID,
     token_data: dict = Depends(get_current_user_token),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
-    success = revoke_key(key_id=str(key_id), user_id=token_data["sub"])
+    success = await revoke_key(db, key_id=str(key_id), user_id=token_data["sub"])
     if not success:
         raise HTTPException(status_code=404, detail="API key not found")
     return {"message": "API key revoked"}
