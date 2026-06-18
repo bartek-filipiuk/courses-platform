@@ -1,16 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { setToken } from "@/lib/session";
+import { Suspense, useEffect, useState } from "react";
+import { setRefreshToken, setToken } from "@/lib/session";
 
-const API_BASE_URL =
-	process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 type Status = "verifying" | "error";
 
 interface VerifyResponse {
 	access_token: string;
+	refresh_token: string;
 	token_type: string;
 	user_id: string;
 }
@@ -41,6 +41,9 @@ function MagicCallback() {
 				if (cancelled) return;
 
 				setToken(data.access_token);
+				if (data.refresh_token) {
+					setRefreshToken(data.refresh_token);
+				}
 				router.replace("/missions");
 			} catch {
 				if (!cancelled) setStatus("error");
