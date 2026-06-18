@@ -14,7 +14,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.jwt import create_access_token, create_magic_token
+from app.auth.jwt import create_access_token, create_magic_token, create_refresh_token
 from app.auth.magic import MagicError, consume_magic_token
 from app.auth.models import User
 from app.config import settings
@@ -69,6 +69,12 @@ async def magic_verify(request: Request, token: str) -> JSONResponse:
     access = create_access_token(
         data={"sub": ident["sub"], "role": "student", "email": ident["email"]}
     )
+    refresh = create_refresh_token(data={"sub": ident["sub"], "email": ident["email"]})
     return JSONResponse(
-        {"access_token": access, "token_type": "bearer", "user_id": ident["sub"]}
+        {
+            "access_token": access,
+            "refresh_token": refresh,
+            "token_type": "bearer",
+            "user_id": ident["sub"],
+        }
     )

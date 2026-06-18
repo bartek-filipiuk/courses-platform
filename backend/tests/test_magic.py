@@ -1,5 +1,6 @@
 """Tests for single-use magic-token mint + verify (sales-bridge auth)."""
 
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -126,3 +127,18 @@ async def test_verify_bad_token_400():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
         r = await c.get("/api/auth/magic/verify", params={"token": "garbage"})
     assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_magic_verify_returns_refresh_token(monkeypatch):
+    """magic/verify must return a non-empty refresh_token alongside the access_token (B4)."""
+    from app.rate_limit import limiter
+
+    limiter.reset()
+    ident = {"sub": str(uuid.uuid4()), "email": "a@b.c"}
+    monkeypatch.setattr("app.auth.magic_router.consume_magic_token", AsyncMock(return_value=ident))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+        r = await c.get("/api/auth/magic/verify?token=ok")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["access_token"] and body["refresh_token"]
