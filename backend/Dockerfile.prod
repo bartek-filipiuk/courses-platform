@@ -83,4 +83,4 @@ EXPOSE 8000
 # Migrate then serve. WORKDIR is the backend root so `alembic` finds
 # alembic.ini (script_location = %(here)s/alembic, prepend_sys_path = .).
 # Fail-fast: a failed migration aborts the chain and the container exits.
-CMD ["sh", "-c", "alembic upgrade head && python scripts/ensure_admin.py && python scripts/seed_shadow_course.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && python scripts/ensure_admin.py && python scripts/seed_shadow_course.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips \"*\""]
