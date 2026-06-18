@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.deps import require_service_token
 from app.auth.dependencies import get_current_user_token
+from app.courses.access import require_active_enrollment_for_course
 from app.courses.models import Course, Enrollment
 from app.courses.schemas import (
     CourseCreate,
@@ -202,13 +203,18 @@ async def list_my_enrollments(
 async def download_starter_pack(
     request: Request,
     course_id: uuid.UUID,
-    _token_data: dict = Depends(get_current_user_token),
+    token_data: dict = Depends(get_current_user_token),
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     result = await db.execute(select(Course).where(Course.id == course_id))
     course = result.scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+
+    # The starter pack ships persona_prompt + global_context (Game-Master IP),
+    # so require an active enrollment before streaming it.
+    user_id = uuid.UUID(token_data["sub"])
+    await require_active_enrollment_for_course(db, user_id, course_id)
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:

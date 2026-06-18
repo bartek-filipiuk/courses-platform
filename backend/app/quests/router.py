@@ -91,6 +91,10 @@ async def list_course_quests(
     """List all quests in a course with their states for the current user."""
     user_id = uuid.UUID(token_data["sub"])
 
+    # Require an active enrollment before exposing the course's quest list
+    # (titles/skills/evaluation_type are paid content).
+    await require_active_enrollment_for_course(db, user_id, course_id)
+
     result = await db.execute(
         select(Quest, QuestState)
         .outerjoin(QuestState, (QuestState.quest_id == Quest.id) & (QuestState.user_id == user_id))

@@ -192,7 +192,10 @@ async def test_starter_pack_download(student_token, mock_db):
     mock_course = _mock_course(persona_prompt="You are ORACLE, a rogue AI.")
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_course
-    mock_db.execute.return_value = mock_result
+    # course lookup, then enrollment check (enrolled -> a row exists)
+    mock_enroll = MagicMock()
+    mock_enroll.first.return_value = (uuid4(),)
+    mock_db.execute.side_effect = [mock_result, mock_enroll]
 
     with patch("app.auth.dependencies.is_token_blacklisted", return_value=False):
         transport = ASGITransport(app=app)

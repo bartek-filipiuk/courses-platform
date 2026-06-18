@@ -121,3 +121,54 @@ async def test_hint_for_non_enrolled_user_403(student_token):
             )
         assert r.status_code == 403
     app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_list_course_quests_for_non_enrolled_user_403(student_token):
+    """GET /api/courses/{id}/quests for a non-enrolled user -> 403.
+
+    The quest list leaks every quest's title/skills/evaluation_type, so it must
+    be gated by an active enrollment before the list query runs.
+    """
+    db = AsyncMock()
+    course_id = uuid4()
+    # enrollment check is the first (and only) execute -> None means not enrolled
+    enr = MagicMock()
+    enr.first.return_value = None
+    db.execute.side_effect = [enr]
+    _override(db)
+    with patch("app.auth.dependencies.is_token_blacklisted", return_value=False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+            r = await c.get(
+                f"/api/courses/{course_id}/quests", headers=_auth(student_token)
+            )
+        assert r.status_code == 403
+    app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_starter_pack_for_non_enrolled_user_403(student_token):
+    """GET /api/courses/{id}/starter-pack for a non-enrolled user -> 403.
+
+    The starter pack streams persona_prompt + global_context (the Game-Master
+    IP), so it must require an active enrollment before streaming.
+    """
+    db = AsyncMock()
+    course_id = uuid4()
+    course = MagicMock()
+    course.id = course_id
+    course.title = "Locked Course"
+    cres = MagicMock()
+    cres.scalar_one_or_none.return_value = course
+    enr = MagicMock()
+    enr.first.return_value = None
+    # course lookup, then enrollment check -> None (not enrolled)
+    db.execute.side_effect = [cres, enr]
+    _override(db)
+    with patch("app.auth.dependencies.is_token_blacklisted", return_value=False):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+            r = await c.get(
+                f"/api/courses/{course_id}/starter-pack", headers=_auth(student_token)
+            )
+        assert r.status_code == 403
+    app.dependency_overrides.pop(get_db, None)
