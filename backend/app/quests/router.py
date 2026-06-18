@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user_token
@@ -11,6 +11,7 @@ from app.courses.access import (
     require_active_enrollment_for_course,
     require_active_enrollment_for_quest,
 )
+from app.courses.models import Enrollment
 from app.courses.router import _require_admin
 from app.database import get_db
 from app.quests.models import ArtifactDefinition, Quest, QuestState, UserArtifact
@@ -141,17 +142,7 @@ async def get_active_quest(
     if course_id:
         await require_active_enrollment_for_course(db, user_id, course_id)
 
-    query = (
-        select(QuestState, Quest)
-        .join(Quest, QuestState.quest_id == Quest.id)
-        .where(
-            QuestState.user_id == user_id,
-            QuestState.state.in_(("IN_PROGRESS", "FAILED_ATTEMPT", "AVAILABLE")),
-        )
-    )
-    if course_id:
-        query = query.where(Quest.course_id == course_id)
-    result = await db.execute(query)
+    result = await db.execute(_active_quest_stmt(user_id, course_id=course_id))
     rows = result.all()
 
     if not rows:
@@ -278,6 +269,42 @@ async def update_quest(
 
 
 # --- Helpers ---
+
+
+def _active_quest_stmt(user_id: uuid.UUID, *, course_id: uuid.UUID | None) -> Select:
+    """Statement for the user's active QuestStates (+ their Quest).
+
+    Returns (QuestState, Quest) rows for the caller's IN_PROGRESS/FAILED_ATTEMPT/
+    AVAILABLE quests.
+
+    When ``course_id`` is supplied, the handler already gates the request via
+    ``require_active_enrollment_for_course``, so we only constrain to that course.
+
+    When ``course_id`` is None (the unscoped path used by the Starter Pack and
+    profile page), there is no per-course gate, so the statement itself MUST
+    scope to courses the user is ACTIVELY enrolled in: it joins ``Enrollment``
+    on the quest's ``course_id`` for this ``user_id`` with
+    ``revoked_at IS NULL``. This closes the leak where a REVOKED (refunded)
+    user — whose QuestStates still exist — could drop ``?course_id=`` and keep
+    reading quest briefing/title/skills. Removing the Enrollment join or the
+    ``revoked_at.is_(None)`` clause reopens that leak.
+    """
+    stmt = (
+        select(QuestState, Quest)
+        .join(Quest, QuestState.quest_id == Quest.id)
+        .where(
+            QuestState.user_id == user_id,
+            QuestState.state.in_(("IN_PROGRESS", "FAILED_ATTEMPT", "AVAILABLE")),
+        )
+    )
+    if course_id:
+        return stmt.where(Quest.course_id == course_id)
+    return stmt.join(
+        Enrollment, Enrollment.course_id == Quest.course_id
+    ).where(
+        Enrollment.user_id == user_id,
+        Enrollment.revoked_at.is_(None),
+    )
 
 
 async def _get_quest_state(

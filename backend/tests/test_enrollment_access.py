@@ -21,6 +21,7 @@ from app.courses.access import (
 )
 from app.database import get_db
 from app.main import app
+from app.quests.router import _active_quest_stmt
 
 
 @pytest.fixture
@@ -246,3 +247,45 @@ def test_quest_access_query_filters_out_revoked_enrollments():
     """
     where = _where_sql(_active_enrollment_for_quest_stmt(uuid4(), uuid4()))
     assert "revoked_at is null" in where
+
+
+def test_unscoped_active_quest_query_requires_active_enrollment():
+    """Task 8: the UNSCOPED active-quest query (no course_id) MUST join
+    `Enrollment` and carry `revoked_at IS NULL`.
+
+    `GET /api/users/me/active-quest` with no course_id is what the Starter Pack
+    and profile page use. Without a non-revoked enrollment join, a REVOKED
+    (refunded/charged-back) user — whose QuestStates still exist — can drop the
+    `?course_id=` param and keep reading the quest briefing/title/skills.
+
+    This compiles the EXACT statement the handler executes for the unscoped
+    path and asserts both the enrollment join and the `revoked_at IS NULL`
+    predicate are present. Remove the Enrollment join + `revoked_at.is_(None)`
+    from `_active_quest_stmt(... course_id=None)` and this test FAILS, so a
+    revoked user can no longer read their quest by dropping course_id.
+    """
+    from app.courses.models import Enrollment
+
+    stmt = _active_quest_stmt(uuid4(), course_id=None)
+
+    where = _where_sql(stmt)
+    assert "revoked_at is null" in where, "unscoped active-quest must exclude revoked enrollments"
+
+    # The Enrollment table must be part of the FROM/join graph, not just the WHERE.
+    compiled = str(stmt.compile()).lower()
+    assert Enrollment.__tablename__ in compiled, (
+        "unscoped active-quest must join Enrollment to scope to active enrollments"
+    )
+    assert "join" in compiled, "unscoped active-quest must JOIN Enrollment, not cross-product it"
+
+
+def test_scoped_active_quest_query_filters_by_course():
+    """The course_id-scoped path keeps its `course_id` predicate.
+
+    (The scoped path is additionally gated by `require_active_enrollment_for_course`
+    in the handler, so it does not need the inline enrollment join; it just must
+    still constrain to the requested course.)
+    """
+    course_id = uuid4()
+    where = _where_sql(_active_quest_stmt(uuid4(), course_id=course_id))
+    assert "course_id" in where
