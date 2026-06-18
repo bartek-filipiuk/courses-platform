@@ -15,6 +15,10 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.auth.jwt import create_access_token
+from app.courses.access import (
+    _active_enrollment_for_course_stmt,
+    _active_enrollment_for_quest_stmt,
+)
 from app.database import get_db
 from app.main import app
 
@@ -208,3 +212,37 @@ async def test_submit_for_revoked_enrollment_403(student_token):
             )
         assert r.status_code == 403
     app.dependency_overrides.pop(get_db, None)
+
+
+def _where_sql(stmt) -> str:
+    """Compiled WHERE clause of a Select, lowercased for predicate matching."""
+    whereclause = stmt.whereclause
+    assert whereclause is not None, "access statement has no WHERE clause"
+    return str(whereclause.compile()).lower()
+
+
+def test_course_access_query_filters_out_revoked_enrollments():
+    """The course guard's query MUST carry `revoked_at IS NULL`.
+
+    This is the real, mutation-sensitive replacement for the previously
+    tautological revoked->403 test: it compiles the EXACT statement the guard
+    executes and asserts the `revoked_at IS NULL` predicate is present in the
+    WHERE clause. Delete `Enrollment.revoked_at.is_(None)` from
+    `_active_enrollment_for_course_stmt` and this test FAILS — a revoked
+    (refunded/charged-back) enrollment would otherwise still match and grant
+    access.
+    """
+    where = _where_sql(_active_enrollment_for_course_stmt(uuid4(), uuid4()))
+    assert "revoked_at is null" in where
+
+
+def test_quest_access_query_filters_out_revoked_enrollments():
+    """The quest guard's query MUST carry `revoked_at IS NULL` (mutation check).
+
+    Same proof for the join-based quest guard: removing the
+    `Enrollment.revoked_at.is_(None)` clause from
+    `_active_enrollment_for_quest_stmt` makes this assertion fail, so a revoked
+    enrollment can no longer silently pass the guard.
+    """
+    where = _where_sql(_active_enrollment_for_quest_stmt(uuid4(), uuid4()))
+    assert "revoked_at is null" in where

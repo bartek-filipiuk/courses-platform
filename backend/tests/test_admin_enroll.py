@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -116,6 +117,112 @@ async def test_enroll_existing_user_is_idempotent(monkeypatch):
             # Quest states must NOT be re-initialized for an existing enrollment
             iqs.assert_not_awaited()
             # Welcome magic-link is always (re)sent
+            send.assert_awaited_once()
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_re_enroll_after_revoke_clears_revoked_at(monkeypatch):
+    """Re-purchase after a refund/chargeback must RESTORE access.
+
+    A previously-REVOKED user already has an Enrollment row (with revoked_at
+    set). Re-paying via the canonical paid path must clear revoked_at so the
+    enrollment guards (which require `revoked_at IS NULL`) stop 403-ing. Quest
+    states already exist from the original enroll, so initialize_quest_states
+    must NOT run again (it is not idempotent — re-running violates the
+    uq_quest_states_user_quest unique constraint).
+    """
+    monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
+    db = AsyncMock()
+    existing_user = MagicMock()
+    existing_user.id = uuid.uuid4()
+    existing_user.email = "buyer@x.pl"
+    course = MagicMock()
+    course.is_published = True
+    revoked_enrollment = MagicMock()
+    revoked_enrollment.revoked_at = datetime.now(timezone.utc)  # was revoked
+    # 1st: user lookup -> existing ; 2nd: course lookup -> course ;
+    # 3rd: enrollment lookup -> existing-but-revoked
+    user_res = MagicMock()
+    user_res.scalar_one_or_none.return_value = existing_user
+    course_res = MagicMock()
+    course_res.scalar_one_or_none.return_value = course
+    enr_res = MagicMock()
+    enr_res.scalar_one_or_none.return_value = revoked_enrollment
+    db.execute.side_effect = [user_res, course_res, enr_res]
+    app.dependency_overrides[get_db] = _override_db(db)
+    try:
+        with (
+            patch("app.admin.service.initialize_quest_states", AsyncMock()) as iqs,
+            patch("app.admin.service.send_magic_link_email", AsyncMock()) as send,
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://t"
+            ) as c:
+                r = await c.post(
+                    "/api/admin/enroll-by-email",
+                    headers={"X-Service-Token": "secret"},
+                    json={"email": "buyer@x.pl", "course_id": str(uuid.uuid4())},
+                )
+            assert r.status_code == 201
+            body = r.json()
+            assert body["status"] == "enrolled"
+            assert body["created_user"] is False
+            # Access RESTORED: revoked_at was cleared and the re-grant committed.
+            assert revoked_enrollment.revoked_at is None
+            db.commit.assert_awaited()
+            # No NEW enrollment row inserted (the existing row was re-granted).
+            db.add.assert_not_called()
+            # Quest states already exist -> must NOT be re-initialized.
+            iqs.assert_not_awaited()
+            # Welcome magic-link is always (re)sent.
+            send.assert_awaited_once()
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_enroll_existing_active_user_does_not_touch_revoked_at(monkeypatch):
+    """An idempotent re-enroll of an already-ACTIVE user must not commit a
+    spurious re-grant: revoked_at is already None, so no UPDATE/commit for it."""
+    monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
+    db = AsyncMock()
+    existing_user = MagicMock()
+    existing_user.id = uuid.uuid4()
+    existing_user.email = "buyer@x.pl"
+    course = MagicMock()
+    course.is_published = True
+    active_enrollment = MagicMock()
+    active_enrollment.revoked_at = None  # already active
+    user_res = MagicMock()
+    user_res.scalar_one_or_none.return_value = existing_user
+    course_res = MagicMock()
+    course_res.scalar_one_or_none.return_value = course
+    enr_res = MagicMock()
+    enr_res.scalar_one_or_none.return_value = active_enrollment
+    db.execute.side_effect = [user_res, course_res, enr_res]
+    app.dependency_overrides[get_db] = _override_db(db)
+    try:
+        with (
+            patch("app.admin.service.initialize_quest_states", AsyncMock()) as iqs,
+            patch("app.admin.service.send_magic_link_email", AsyncMock()) as send,
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://t"
+            ) as c:
+                r = await c.post(
+                    "/api/admin/enroll-by-email",
+                    headers={"X-Service-Token": "secret"},
+                    json={"email": "buyer@x.pl", "course_id": str(uuid.uuid4())},
+                )
+            assert r.status_code == 201
+            assert r.json()["status"] == "enrolled"
+            assert active_enrollment.revoked_at is None
+            db.add.assert_not_called()
+            iqs.assert_not_awaited()
+            # No DB commit needed for an already-active enrollment.
+            db.commit.assert_not_awaited()
             send.assert_awaited_once()
     finally:
         app.dependency_overrides.pop(get_db, None)

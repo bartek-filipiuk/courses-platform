@@ -13,25 +13,50 @@ exactly like never having enrolled.
 import uuid
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.courses.models import Enrollment
 from app.quests.models import Quest
 
 
+def _active_enrollment_for_course_stmt(
+    user_id: uuid.UUID, course_id: uuid.UUID
+) -> Select:
+    """Statement matching an ACTIVE (revoked_at IS NULL) enrollment in a course.
+
+    Extracted so the access logic — in particular the `revoked_at IS NULL`
+    clause — is directly unit-testable (see test_enrollment_access). The guard
+    below executes exactly this statement; the logic is unchanged.
+    """
+    return select(Enrollment).where(
+        Enrollment.user_id == user_id,
+        Enrollment.course_id == course_id,
+        Enrollment.revoked_at.is_(None),
+    )
+
+
+def _active_enrollment_for_quest_stmt(
+    user_id: uuid.UUID, quest_id: uuid.UUID
+) -> Select:
+    """Statement matching an ACTIVE enrollment in the course a quest belongs to."""
+    return (
+        select(Enrollment.user_id)
+        .join(Quest, Quest.course_id == Enrollment.course_id)
+        .where(
+            Quest.id == quest_id,
+            Enrollment.user_id == user_id,
+            Enrollment.revoked_at.is_(None),
+        )
+    )
+
+
 async def require_active_enrollment_for_course(
     db: AsyncSession, user_id: uuid.UUID, course_id: uuid.UUID
 ) -> None:
-    """Raise 403 unless `user_id` has an enrollment in `course_id`."""
+    """Raise 403 unless `user_id` has an active enrollment in `course_id`."""
     row = (
-        await db.execute(
-            select(Enrollment).where(
-                Enrollment.user_id == user_id,
-                Enrollment.course_id == course_id,
-                Enrollment.revoked_at.is_(None),
-            )
-        )
+        await db.execute(_active_enrollment_for_course_stmt(user_id, course_id))
     ).first()
     if row is None:
         raise HTTPException(status_code=403, detail="Not enrolled in this course")
@@ -40,17 +65,9 @@ async def require_active_enrollment_for_course(
 async def require_active_enrollment_for_quest(
     db: AsyncSession, user_id: uuid.UUID, quest_id: uuid.UUID
 ) -> None:
-    """Raise 403 unless `user_id` is enrolled in the course the quest belongs to."""
+    """Raise 403 unless `user_id` has an active enrollment in the quest's course."""
     row = (
-        await db.execute(
-            select(Enrollment.user_id)
-            .join(Quest, Quest.course_id == Enrollment.course_id)
-            .where(
-                Quest.id == quest_id,
-                Enrollment.user_id == user_id,
-                Enrollment.revoked_at.is_(None),
-            )
-        )
+        await db.execute(_active_enrollment_for_quest_stmt(user_id, quest_id))
     ).first()
     if row is None:
         raise HTTPException(status_code=403, detail="Not enrolled in this course")

@@ -24,8 +24,10 @@ async def enroll_user_by_email(
     """Upsert a user by email, enroll them in a course, init quest states, send welcome link.
 
     Idempotent: a pre-existing enrollment is not duplicated and quest states are
-    only initialized when a NEW enrollment is created. The welcome magic-link is
-    always (re)sent.
+    only initialized when a NEW enrollment is created. A previously-REVOKED
+    enrollment (refund/chargeback) is RE-GRANTED by clearing revoked_at, so a
+    re-purchase via this canonical paid path restores access. The welcome
+    magic-link is always (re)sent.
     """
     # 1. Upsert user by email (mirror oauth.upsert_user; provider="stripe").
     res = await db.execute(select(User).where(User.email == email))
@@ -50,17 +52,27 @@ async def enroll_user_by_email(
     if course is None:
         raise HTTPException(status_code=404, detail="Course not found")
 
-    # 3. Create enrollment only if absent; init quest states only for new enrollment.
+    # 3. Grant access. Three cases, all idempotent:
+    #    a) no enrollment row  -> create it + init quest states (truly new).
+    #    b) revoked enrollment -> clear revoked_at (re-purchase after refund/
+    #       chargeback RESTORES access). Quest states already exist from the
+    #       original enroll, so do NOT re-run initialize_quest_states — it is
+    #       not idempotent (would violate uq_quest_states_user_quest).
+    #    c) active enrollment   -> nothing to do (plain idempotent re-enroll).
     res = await db.execute(
         select(Enrollment).where(
             Enrollment.user_id == user.id,
             Enrollment.course_id == course_id,
         )
     )
-    if res.scalar_one_or_none() is None:
+    enrollment = res.scalar_one_or_none()
+    if enrollment is None:
         db.add(Enrollment(user_id=user.id, course_id=course_id))
         await db.commit()
         await initialize_quest_states(db, user.id, course_id)
+    elif enrollment.revoked_at is not None:
+        enrollment.revoked_at = None
+        await db.commit()
 
     # 4. Always mint a magic token and build the welcome link. The SEND is
     #    best-effort (spec §7): a transient Brevo failure (e.g. on a re-delivered
