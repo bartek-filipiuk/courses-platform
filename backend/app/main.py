@@ -37,11 +37,15 @@ async def lifespan(_app: FastAPI):
     await close_redis()
 
 
+_is_prod = settings.ENVIRONMENT == "production"
 app = FastAPI(
     title="NDQS Backend",
     description="Narrative-Driven Quest Sandbox — API",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url=None if _is_prod else "/docs",
+    redoc_url=None if _is_prod else "/redoc",
+    openapi_url=None if _is_prod else "/openapi.json",
 )
 
 # Rate limiter setup

@@ -4,14 +4,6 @@
         reverse_proxy backend:8000
     }
 
-    # Swagger docs
-    handle /docs* {
-        reverse_proxy backend:8000
-    }
-    handle /openapi.json {
-        reverse_proxy backend:8000
-    }
-
     # Frontend — reverse proxy to Next.js
     handle {
         reverse_proxy frontend:3000
