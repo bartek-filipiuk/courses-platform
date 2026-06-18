@@ -1,6 +1,7 @@
 import traceback
 import uuid
 
+import sentry_sdk
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -32,6 +33,23 @@ from app.redis import close_redis, get_redis
 setup_logging()
 
 logger = structlog.get_logger()
+
+
+def init_sentry() -> None:
+    """Initialize Sentry if SENTRY_DSN is configured.
+
+    No-op when SENTRY_DSN is unset so local/dev runs need no DSN.
+    """
+    if settings.SENTRY_DSN:
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.ENVIRONMENT,
+            traces_sample_rate=0.0,
+        )
+
+
+# Run at module load — no-op when SENTRY_DSN is unset
+init_sentry()
 
 
 @asynccontextmanager

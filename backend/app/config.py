@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     BREVO_API_KEY: str = ""
     BREVO_SENDER_EMAIL: str = "bartek@devince.dev"
     LLM_DAILY_CAP_PER_USER: int = 200
+    SENTRY_DSN: str | None = None
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
