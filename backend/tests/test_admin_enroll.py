@@ -122,6 +122,55 @@ async def test_enroll_existing_user_is_idempotent(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_enroll_succeeds_when_welcome_email_fails(monkeypatch):
+    """A transient Brevo failure must NOT fail an already-successful enrollment.
+
+    Spec §7: the welcome email is BEST-EFFORT. send_magic_link_email raises
+    RuntimeError on any non-2xx Brevo response (e.g. a re-delivered webhook), but
+    the new-user enroll path must still commit and return 201 / status="enrolled".
+    """
+    monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
+    db = AsyncMock()
+    course = MagicMock()
+    course.is_published = True
+    # 1st execute: user lookup -> None ; 2nd: course lookup -> course ; 3rd: enrollment lookup -> None
+    user_res = MagicMock()
+    user_res.scalar_one_or_none.return_value = None
+    course_res = MagicMock()
+    course_res.scalar_one_or_none.return_value = course
+    enr_res = MagicMock()
+    enr_res.scalar_one_or_none.return_value = None
+    db.execute.side_effect = [user_res, course_res, enr_res]
+    app.dependency_overrides[get_db] = _override_db(db)
+    try:
+        with (
+            patch("app.admin.service.initialize_quest_states", AsyncMock()) as iqs,
+            patch(
+                "app.admin.service.send_magic_link_email",
+                AsyncMock(side_effect=RuntimeError("brevo 500")),
+            ) as send,
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://t"
+            ) as c:
+                r = await c.post(
+                    "/api/admin/enroll-by-email",
+                    headers={"X-Service-Token": "secret"},
+                    json={"email": "buyer@x.pl", "course_id": str(uuid.uuid4())},
+                )
+            # Enrollment is NOT rolled back by an email failure.
+            assert r.status_code == 201
+            body = r.json()
+            assert body["status"] == "enrolled"
+            assert body["created_user"] is True
+            iqs.assert_awaited_once()
+            # The send was attempted (and failed), but it was best-effort.
+            send.assert_awaited_once()
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
 async def test_enroll_rejects_bad_service_token(monkeypatch):
     monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:

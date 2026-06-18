@@ -1,5 +1,6 @@
 """Admin service-to-service operations — enroll a buyer by email."""
 
+import logging
 import uuid
 
 from fastapi import HTTPException
@@ -12,6 +13,8 @@ from app.config import settings
 from app.courses.models import Course, Enrollment
 from app.email import send_magic_link_email
 from app.quests.state_machine import initialize_quest_states
+
+logger = logging.getLogger(__name__)
 
 
 async def enroll_user_by_email(
@@ -58,10 +61,20 @@ async def enroll_user_by_email(
         await db.commit()
         await initialize_quest_states(db, user.id, course_id)
 
-    # 4. Always mint a magic token and send the welcome email.
+    # 4. Always mint a magic token and build the welcome link. The SEND is
+    #    best-effort (spec §7): a transient Brevo failure (e.g. on a re-delivered
+    #    webhook) must never fail an already-successful enrollment.
     token = create_magic_token(str(user.id), user.email)
     link = f"{settings.FRONTEND_URL}/auth/magic?token={token}"
-    await send_magic_link_email(user.email, link)
+    try:
+        await send_magic_link_email(user.email, link)
+    except Exception:
+        logger.warning(
+            "welcome email failed for %s (course %s); enrollment already granted",
+            user.email,
+            course_id,
+            exc_info=True,
+        )
 
     # 5. Return outcome.
     return {
