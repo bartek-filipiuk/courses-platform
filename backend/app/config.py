@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
+    NDQS_SERVICE_TOKEN: str = ""
+    BREVO_API_KEY: str = ""
+    BREVO_SENDER_EMAIL: str = "bartek@devince.dev"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
