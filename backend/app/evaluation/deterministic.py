@@ -5,6 +5,8 @@ import re
 import httpx
 import structlog
 
+from app.net_guard import assert_public_url
+
 logger = structlog.get_logger()
 
 
@@ -41,8 +43,15 @@ async def _evaluate_url_check(payload: dict, criteria: dict) -> dict:
     expected_status = criteria.get("expected_status", 200)
     expected_body_contains = criteria.get("body_contains", None)
 
+    # SSRF guard: the URL is learner-supplied, so block private/internal targets
+    # (redis/db, host loopback, cloud metadata) before we fetch anything.
     try:
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        await assert_public_url(url, require_https=criteria.get("require_https", False))
+    except ValueError:
+        return {"passed": False, "error": "URL not allowed"}
+
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
             resp = await client.request(
                 method,
                 url,
