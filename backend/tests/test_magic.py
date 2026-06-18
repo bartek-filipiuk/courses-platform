@@ -1,11 +1,22 @@
 """Tests for single-use magic-token mint + verify (sales-bridge auth)."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 
 from app.auth.jwt import create_magic_token
 from app.auth.magic import MagicError, consume_magic_token
+from app.database import get_db
+from app.main import app
+
+
+def _override_db(db):
+    async def _f():
+        yield db
+
+    return _f
 
 
 @pytest.mark.asyncio
@@ -48,3 +59,47 @@ async def test_access_token_rejected_as_magic() -> None:
         pytest.raises(MagicError),
     ):
         await consume_magic_token(tok)
+
+
+# --- Endpoint tests: magic-link request + verify router ---
+
+
+@pytest.mark.asyncio
+async def test_request_unknown_email_still_200_no_send():
+    db = AsyncMock()
+    res = MagicMock()
+    res.scalar_one_or_none.return_value = None
+    db.execute.return_value = res
+    app.dependency_overrides[get_db] = _override_db(db)
+    with patch("app.auth.magic_router.send_magic_link_email", AsyncMock()) as send:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+            r = await c.post("/api/auth/magic/request", json={"email": "ghost@x.pl"})
+        assert r.status_code == 200 and r.json() == {"sent": True}
+        send.assert_not_awaited()
+    app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_request_known_email_sends_link():
+    db = AsyncMock()
+    user = MagicMock()
+    user.id = uuid4()
+    user.email = "buyer@x.pl"
+    res = MagicMock()
+    res.scalar_one_or_none.return_value = user
+    db.execute.return_value = res
+    app.dependency_overrides[get_db] = _override_db(db)
+    with patch("app.auth.magic_router.send_magic_link_email", AsyncMock()) as send:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+            r = await c.post("/api/auth/magic/request", json={"email": "buyer@x.pl"})
+        assert r.status_code == 200
+        send.assert_awaited_once()
+        assert "/auth/magic?token=" in send.await_args.args[1]
+    app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.mark.asyncio
+async def test_verify_bad_token_400():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+        r = await c.get("/api/auth/magic/verify", params={"token": "garbage"})
+    assert r.status_code == 400

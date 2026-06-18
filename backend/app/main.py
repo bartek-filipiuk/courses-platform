@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 
 from contextlib import asynccontextmanager
 
+from app.auth.magic_router import router as magic_router
 from app.auth.router import router as auth_router
 from app.courses.router import router as courses_router
 from app.evaluation.router import router as evaluation_router
@@ -101,6 +102,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 
 app.include_router(auth_router)
+app.include_router(magic_router)
 app.include_router(courses_router)
 app.include_router(quests_router)
 app.include_router(evaluation_router)
