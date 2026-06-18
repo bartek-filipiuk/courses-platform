@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Eye, EyeOff, KeyRound, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
-import { getDevToken } from "@/lib/dev-auth";
+import { getSessionToken } from "@/lib/dev-auth";
 import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
 import TopBar from "@/components/TopBar";
 import { cn } from "@/lib/utils";
@@ -219,7 +219,7 @@ export default function ProfilePage() {
 
 	async function revoke(id: string) {
 		try {
-			const token = await getDevToken("student");
+			const token = await getSessionToken("student");
 			await apiClient(`/api/auth/api-key/revoke/${id}`, { method: "DELETE", token });
 			setLocalKeys((prev) =>
 				prev ? prev.map((k) => (k.id === id ? { ...k, is_active: false } : k)) : prev,

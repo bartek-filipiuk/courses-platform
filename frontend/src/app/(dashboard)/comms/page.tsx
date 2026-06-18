@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, Send } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
-import { getDevToken } from "@/lib/dev-auth";
+import { getSessionToken } from "@/lib/dev-auth";
 import { cn } from "@/lib/utils";
 import TopBar from "@/components/TopBar";
 
@@ -150,7 +150,7 @@ function CommsLogContent() {
 		let cancelled = false;
 		(async () => {
 			try {
-				const token = await getDevToken("student");
+				const token = await getSessionToken("student");
 				let courseId = courseIdFromUrl;
 				let enrollmentsList: EnrollmentLite[] | null = null;
 				if (!courseId) {

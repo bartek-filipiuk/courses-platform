@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiClient } from "./api-client";
-import { getDevToken } from "./dev-auth";
+import { getSessionToken } from "./dev-auth";
 
 /**
  * Hook for authenticated API calls.
- * Auto-fetches dev token in development, uses NextAuth session in production.
+ * Prefers the magic-link session token; falls back to the dev token in
+ * non-production environments (see getSessionToken).
  */
 export function useAuthFetch<T>(
 	path: string,
@@ -23,7 +24,7 @@ export function useAuthFetch<T>(
 
 		(async () => {
 			try {
-				const token = await getDevToken(options?.role || "student");
+				const token = await getSessionToken(options?.role || "student");
 				const result = await apiClient<T>(path, { token });
 				setData(result);
 			} catch (e) {
@@ -46,7 +47,7 @@ export function useAuthMutate(role: "student" | "admin" = "student") {
 	const mutate = useCallback(
 		async <T>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> => {
 			if (!tokenRef.current) {
-				tokenRef.current = await getDevToken(role);
+				tokenRef.current = await getSessionToken(role);
 			}
 			return apiClient<T>(path, { ...opts, token: tokenRef.current });
 		},

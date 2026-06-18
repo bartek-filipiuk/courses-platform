@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api-client";
 import { useAuthFetch, useAuthMutate } from "@/lib/use-api";
-import { getDevToken } from "@/lib/dev-auth";
+import { getSessionToken } from "@/lib/dev-auth";
 import { Button } from "@/components/ui";
 import GlassCard from "@/components/GlassCard";
 import type { CourseDetail } from "@/types";
@@ -40,7 +40,7 @@ export default function CoursePage() {
 
 	const handleDownloadStarterPack = async () => {
 		const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-		const token = await getDevToken("student");
+		const token = await getSessionToken("student");
 		const resp = await fetch(`${apiBase}/api/courses/${courseId}/starter-pack`, {
 			headers: { Authorization: `Bearer ${token}` },
 		});

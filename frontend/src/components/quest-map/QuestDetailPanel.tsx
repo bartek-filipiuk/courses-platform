@@ -3,7 +3,7 @@
 import { Download, Lightbulb, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
-import { getDevToken } from "@/lib/dev-auth";
+import { getSessionToken } from "@/lib/dev-auth";
 import { cn } from "@/lib/utils";
 import type { QuestState } from "./QuestNode";
 
@@ -69,7 +69,7 @@ export default function QuestDetailPanel({ quest, onClose, onStartQuest }: Props
 		setLoadError(null);
 		(async () => {
 			try {
-				const token = await getDevToken("student");
+				const token = await getSessionToken("student");
 				const [b, s] = await Promise.all([
 					apiClient<BriefingResponse>(`/api/quests/${quest.id}/briefing`, { token }),
 					apiClient<StatusResponse>(`/api/quests/${quest.id}/status`, { token }),
@@ -102,7 +102,7 @@ export default function QuestDetailPanel({ quest, onClose, onStartQuest }: Props
 		setHintLoading(true);
 		setHint(null);
 		try {
-			const token = await getDevToken("student");
+			const token = await getSessionToken("student");
 			const res = await apiClient<{ hint: string; hints_used: number; hints_remaining: number }>(
 				`/api/quests/${quest.id}/hint`,
 				{
