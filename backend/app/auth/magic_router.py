@@ -21,7 +21,7 @@ from app.config import settings
 from app.database import get_db
 from app.email import send_magic_link_email
 from app.evaluation.models import record_email_failure
-from app.rate_limit import LOGIN_RATE_LIMIT, _get_user_id_or_ip, limiter
+from app.rate_limit import LOGIN_RATE_LIMIT, MAGIC_VERIFY_RATE_LIMIT, _get_user_id_or_ip, limiter
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,8 @@ async def magic_request(
 
 
 @router.get("/verify")
-async def magic_verify(token: str) -> JSONResponse:
+@limiter.limit(MAGIC_VERIFY_RATE_LIMIT, key_func=_get_user_id_or_ip)
+async def magic_verify(request: Request, token: str) -> JSONResponse:
     try:
         ident = await consume_magic_token(token)
     except MagicError:

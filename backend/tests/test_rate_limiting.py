@@ -66,3 +66,18 @@ class TestApiKeyGenerationRateLimiting:
             headers=auth_headers,
         )
         assert response.status_code == 429
+
+
+class TestMagicVerifyRateLimiting:
+    @pytest.mark.asyncio
+    async def test_magic_verify_is_rate_limited(self, client: AsyncClient) -> None:
+        """After 20 verify attempts, the 21st should be rate limited."""
+        from app.rate_limit import limiter
+
+        limiter.reset()
+
+        for _ in range(20):
+            await client.get("/api/auth/magic/verify?token=bad")
+
+        r = await client.get("/api/auth/magic/verify?token=bad")
+        assert r.status_code == 429
