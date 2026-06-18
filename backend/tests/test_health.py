@@ -30,7 +30,6 @@ class TestDeepHealth:
         monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
 
         # Override get_db so the session.execute(SELECT 1) succeeds
-        from app.database import async_session_factory
         from unittest.mock import MagicMock, AsyncMock as AM
 
         fake_session = AM()
@@ -145,6 +144,25 @@ class TestDeepHealth:
         assert r.status_code == 503
 
     @pytest.mark.asyncio
+    async def test_ready_503_when_db_down(self, client: AsyncClient, monkeypatch) -> None:
+        """/api/ready → 503 when DB is down."""
+        fake = AsyncMock()
+        fake.ping.return_value = True
+        monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
+
+        from unittest.mock import AsyncMock as AM
+
+        fake_session = AM()
+        fake_session.__aenter__ = AM(return_value=fake_session)
+        fake_session.__aexit__ = AM(return_value=False)
+        fake_session.execute = AM(side_effect=RuntimeError("db down"))
+
+        monkeypatch.setattr("app.main.async_session_factory", lambda: fake_session)
+
+        r = await client.get("/api/ready")
+        assert r.status_code == 503
+
+    @pytest.mark.asyncio
     async def test_error_test_endpoint_removed(self, client: AsyncClient) -> None:
         """/api/health/error-test must be gone (404)."""
         r = await client.get("/api/health/error-test")
@@ -235,25 +253,6 @@ class TestCORS:
             },
         )
         assert response.headers.get("access-control-allow-origin") != "http://evil.com"
-
-
-class TestExceptionHandling:
-    @pytest.mark.asyncio
-    async def test_production_500_hides_details(self, client: AsyncClient) -> None:
-        """In production, 500 errors should return generic message.
-
-        error-test endpoint is gone; use a different route to trigger 500 behaviour.
-        A missing route returns 404, not 500 — so we verify error-test is 404 now
-        and trust the exception handler is wired correctly (covered by other tests).
-        """
-        r = await client.get("/api/health/error-test")
-        assert r.status_code == 404
-
-    @pytest.mark.asyncio
-    async def test_development_500_shows_details(self, client: AsyncClient) -> None:
-        """error-test endpoint removed — verify it is no longer accessible."""
-        r = await client.get("/api/health/error-test")
-        assert r.status_code == 404
 
 
 class TestDirectoryStructure:

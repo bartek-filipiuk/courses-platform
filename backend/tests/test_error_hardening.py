@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from app.config import settings
 
@@ -28,19 +28,6 @@ def auth_headers() -> dict:
         data={"sub": str(uuid.uuid4()), "role": "student", "email": "test@example.com"}
     )
     return {"Authorization": f"Bearer {token}"}
-
-
-def _patch_health_ok(monkeypatch):
-    """Helper: mock DB + Redis so /api/health returns 200."""
-    fake = AsyncMock()
-    fake.ping.return_value = True
-    monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
-
-    fake_session = AsyncMock()
-    fake_session.__aenter__ = AsyncMock(return_value=fake_session)
-    fake_session.__aexit__ = AsyncMock(return_value=False)
-    fake_session.execute = AsyncMock(return_value=MagicMock())
-    monkeypatch.setattr("app.main.async_session_factory", lambda: fake_session)
 
 
 class TestProductionErrorHardening:
