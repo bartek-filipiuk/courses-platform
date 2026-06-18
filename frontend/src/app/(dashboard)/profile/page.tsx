@@ -241,9 +241,11 @@ export default function ProfilePage() {
 
 	const qualityDims = stats?.quality_scores ? Object.entries(stats.quality_scores) : [];
 
+	const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 	const quickstart = `# ~/.ndqs/config
 export NDQS_API_KEY="ndqs_..."
-export NDQS_API_URL="http://localhost:8002"
+export NDQS_API_URL="${apiUrl}"
 
 # Always pull the active quest first
 curl -H "X-API-Key: $NDQS_API_KEY" \\
