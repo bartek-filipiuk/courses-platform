@@ -23,13 +23,27 @@ async def enroll_user_by_email(
 ) -> dict:
     """Upsert a user by email, enroll them in a course, init quest states, send welcome link.
 
-    Idempotent: a pre-existing enrollment is not duplicated and quest states are
-    only initialized when a NEW enrollment is created. A previously-REVOKED
-    enrollment (refund/chargeback) is RE-GRANTED by clearing revoked_at, so a
-    re-purchase via this canonical paid path restores access. The welcome
-    magic-link is always (re)sent.
+    ATOMIC: the user upsert, the enrollment grant, and the quest-state init all
+    commit together in ONE transaction (a single ``db.commit()`` at the end). This
+    closes a partial-failure hole: previously the user, the enrollment, and the
+    quest states each committed separately, so a crash AFTER the enrollment commit
+    but BEFORE quest-init left an enrolled buyer with zero quests — and a webhook
+    retry, seeing the enrollment already present, SKIPPED quest-init, stranding the
+    buyer permanently.
+
+    Idempotent and self-repairing:
+      * no enrollment row    -> create it, then ensure quest states.
+      * revoked enrollment   -> clear revoked_at (re-purchase after refund/
+        chargeback RESTORES access). Quest states already exist from the original
+        enroll; leave them.
+      * active enrollment     -> ENSURE quest states (idempotent). This is the
+        repair: a partial-failure survivor (enrollment present, states missing)
+        gets its states backfilled on retry. ``initialize_quest_states`` only adds
+        states for quests the user lacks one for, so this never duplicates.
+    The welcome magic-link is always (re)sent, best-effort, AFTER the commit.
     """
     # 1. Upsert user by email (mirror oauth.upsert_user; provider="stripe").
+    #    FLUSH (not commit) so user.id is assigned within this single transaction.
     res = await db.execute(select(User).where(User.email == email))
     user = res.scalar_one_or_none()
     created_user = False
@@ -42,8 +56,7 @@ async def enroll_user_by_email(
             role="student",
         )
         db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        await db.flush()
         created_user = True
 
     # 2. Load course, 404 if missing.
@@ -52,13 +65,9 @@ async def enroll_user_by_email(
     if course is None:
         raise HTTPException(status_code=404, detail="Course not found")
 
-    # 3. Grant access. Three cases, all idempotent:
-    #    a) no enrollment row  -> create it + init quest states (truly new).
-    #    b) revoked enrollment -> clear revoked_at (re-purchase after refund/
-    #       chargeback RESTORES access). Quest states already exist from the
-    #       original enroll, so do NOT re-run initialize_quest_states — it is
-    #       not idempotent (would violate uq_quest_states_user_quest).
-    #    c) active enrollment   -> nothing to do (plain idempotent re-enroll).
+    # 3. Grant access + ensure quest states, all in this same transaction.
+    #    initialize_quest_states is called with commit=False so the SINGLE commit
+    #    below is authoritative over the enrollment AND the quest states together.
     res = await db.execute(
         select(Enrollment).where(
             Enrollment.user_id == user.id,
@@ -67,12 +76,21 @@ async def enroll_user_by_email(
     )
     enrollment = res.scalar_one_or_none()
     if enrollment is None:
+        # Truly new enrollment: insert the row, then ensure quest states.
         db.add(Enrollment(user_id=user.id, course_id=course_id))
-        await db.commit()
-        await initialize_quest_states(db, user.id, course_id)
+        await db.flush()
+        await initialize_quest_states(db, user.id, course_id, commit=False)
     elif enrollment.revoked_at is not None:
+        # Re-purchase after refund/chargeback: restore access. Quest states
+        # already exist from the original enroll, so do not touch them.
         enrollment.revoked_at = None
-        await db.commit()
+    else:
+        # Active enrollment: REPAIR path. Ensure quest states exist (idempotent);
+        # backfills a partial-failure survivor whose states never got created.
+        await initialize_quest_states(db, user.id, course_id, commit=False)
+
+    # Single authoritative commit for the whole unit-of-work.
+    await db.commit()
 
     # 4. Always mint a magic token and build the welcome link. The SEND is
     #    best-effort (spec §7): a transient Brevo failure (e.g. on a re-delivered

@@ -51,17 +51,40 @@ async def transition(db: AsyncSession, quest_state: QuestState, to_state: str) -
     return quest_state
 
 
-async def initialize_quest_states(db: AsyncSession, user_id: uuid.UUID, course_id: uuid.UUID) -> None:
-    """Initialize quest states for a user enrolling in a course.
+async def initialize_quest_states(
+    db: AsyncSession, user_id: uuid.UUID, course_id: uuid.UUID, commit: bool = True
+) -> None:
+    """Ensure quest states exist for a user enrolling in a course.
 
     First quest (no required_artifacts) → AVAILABLE, rest → LOCKED.
+
+    Idempotent: a QuestState is created only for quests this user does NOT yet
+    have one for, so re-running never violates uq_quest_states_user_quest. This
+    lets a Stripe-webhook retry REPAIR a buyer who has an enrollment but missing
+    quest states (the partial-failure survivor) without erroring.
+
+    `commit=False` lets a caller run this inside an outer unit-of-work so a single
+    authoritative commit covers the enrollment AND the quest states together; the
+    outer caller owns the commit. With `commit=True` (default) this commits itself,
+    preserving the self-service enroll path's behavior.
     """
+    # Quests for the course, in order.
     result = await db.execute(
         select(Quest).where(Quest.course_id == course_id).order_by(Quest.sort_order)
     )
     quests = result.scalars().all()
 
+    # Quest ids this user already has a state for — skip them (idempotency).
+    existing_result = await db.execute(
+        select(QuestState.quest_id)
+        .join(Quest, QuestState.quest_id == Quest.id)
+        .where(QuestState.user_id == user_id, Quest.course_id == course_id)
+    )
+    existing_quest_ids = {qid for qid in existing_result.scalars().all()}
+
     for quest in quests:
+        if quest.id in existing_quest_ids:
+            continue
         has_requirements = quest.required_artifact_ids and len(quest.required_artifact_ids) > 0
         initial_state = "LOCKED" if has_requirements else "AVAILABLE"
 
@@ -72,7 +95,8 @@ async def initialize_quest_states(db: AsyncSession, user_id: uuid.UUID, course_i
         )
         db.add(qs)
 
-    await db.commit()
+    if commit:
+        await db.commit()
 
 
 def _sign_artifact(user_id: uuid.UUID, artifact_id: uuid.UUID) -> str:
