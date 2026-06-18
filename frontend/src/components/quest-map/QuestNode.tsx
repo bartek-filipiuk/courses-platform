@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Loader2, Lock, Target } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ComponentType, CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { NODE_HEIGHT, NODE_WIDTH, type NodePosition } from "./layout";
 
@@ -31,7 +31,7 @@ interface StyleSpec {
 	border: string;
 	color: string;
 	label: string;
-	icon: ComponentType<{ className?: string }>;
+	icon: ComponentType<{ className?: string; style?: CSSProperties }>;
 	iconSpin?: boolean;
 }
 

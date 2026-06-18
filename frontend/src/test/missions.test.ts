@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import type { Course } from "../types/index";
 
 describe("Missions pages", () => {
 	it("missions catalog page exists", () => {
@@ -23,10 +24,9 @@ describe("Missions pages", () => {
 });
 
 describe("Course types", () => {
-	it("Course type has required fields", async () => {
-		const types = await import("../types/index");
+	it("Course type has required fields", () => {
 		// Type check: if Course interface changed, this would fail to compile
-		const mockCourse: types.Course = {
+		const mockCourse: Course = {
 			id: "test",
 			creator_id: null,
 			title: "Test",
