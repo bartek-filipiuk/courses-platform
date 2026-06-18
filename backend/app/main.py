@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 
 from contextlib import asynccontextmanager
 
+from app.admin.router import router as admin_router
 from app.auth.magic_router import router as magic_router
 from app.auth.router import router as auth_router
 from app.courses.router import router as courses_router
@@ -107,6 +108,7 @@ app.include_router(courses_router)
 app.include_router(quests_router)
 app.include_router(evaluation_router)
 app.include_router(stats_router)
+app.include_router(admin_router)
 
 
 @app.get("/api/health")
