@@ -4,6 +4,7 @@ import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.config import settings
 
@@ -29,15 +30,39 @@ def auth_headers() -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _patch_health_ok(monkeypatch):
+    """Helper: mock DB + Redis so /api/health returns 200."""
+    fake = AsyncMock()
+    fake.ping.return_value = True
+    monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
+
+    fake_session = AsyncMock()
+    fake_session.__aenter__ = AsyncMock(return_value=fake_session)
+    fake_session.__aexit__ = AsyncMock(return_value=False)
+    fake_session.execute = AsyncMock(return_value=MagicMock())
+    monkeypatch.setattr("app.main.async_session_factory", lambda: fake_session)
+
+
 class TestProductionErrorHardening:
     """In production, errors must never leak internal details."""
 
     @pytest.mark.asyncio
-    async def test_500_returns_generic_message(self, client: AsyncClient) -> None:
+    async def test_500_returns_generic_message(self, client: AsyncClient, monkeypatch) -> None:
+        """500 from a broken endpoint returns generic message in production.
+
+        error-test endpoint was removed; we trigger a 500 by making the health
+        handler itself raise unexpectedly via a deeply-faulting async_session_factory.
+        """
         original = settings.ENVIRONMENT
         settings.ENVIRONMENT = "production"
         try:
-            response = await client.get("/api/health/error-test")
+            # Patch _check_dependencies to raise so the handler surfaces a 500
+            async def _broken():
+                raise RuntimeError("forced 500 for test")
+
+            monkeypatch.setattr("app.main._check_dependencies", _broken)
+
+            response = await client.get("/api/health")
             assert response.status_code == 500
             data = response.json()
             assert data["detail"] == "Internal server error"
@@ -47,11 +72,16 @@ class TestProductionErrorHardening:
             settings.ENVIRONMENT = original
 
     @pytest.mark.asyncio
-    async def test_500_includes_correlation_id(self, client: AsyncClient) -> None:
+    async def test_500_includes_correlation_id(self, client: AsyncClient, monkeypatch) -> None:
         original = settings.ENVIRONMENT
         settings.ENVIRONMENT = "production"
         try:
-            response = await client.get("/api/health/error-test")
+            async def _broken():
+                raise RuntimeError("forced 500 for test")
+
+            monkeypatch.setattr("app.main._check_dependencies", _broken)
+
+            response = await client.get("/api/health")
             assert "x-correlation-id" in response.headers
         finally:
             settings.ENVIRONMENT = original
@@ -113,11 +143,20 @@ class TestDevelopmentErrorDetails:
     """In development, errors should include useful debugging info."""
 
     @pytest.mark.asyncio
-    async def test_500_shows_traceback(self, client: AsyncClient) -> None:
+    async def test_500_shows_traceback(self, client: AsyncClient, monkeypatch) -> None:
+        """500 from a broken endpoint shows traceback in development.
+
+        error-test endpoint was removed; trigger 500 via _check_dependencies raising.
+        """
         original = settings.ENVIRONMENT
         settings.ENVIRONMENT = "development"
         try:
-            response = await client.get("/api/health/error-test")
+            async def _broken():
+                raise RuntimeError("forced 500 for test")
+
+            monkeypatch.setattr("app.main._check_dependencies", _broken)
+
+            response = await client.get("/api/health")
             assert response.status_code == 500
             data = response.json()
             assert "traceback" in data

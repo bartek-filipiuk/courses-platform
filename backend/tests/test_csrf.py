@@ -65,8 +65,20 @@ class TestCSRFProtection:
         assert response.status_code == 201
 
     @pytest.mark.asyncio
-    async def test_get_with_wrong_origin_accepted(self, client: AsyncClient) -> None:
+    async def test_get_with_wrong_origin_accepted(self, client: AsyncClient, monkeypatch) -> None:
         """GET requests are safe methods — origin check should not apply."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        fake = AsyncMock()
+        fake.ping.return_value = True
+        monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
+
+        fake_session = AsyncMock()
+        fake_session.__aenter__ = AsyncMock(return_value=fake_session)
+        fake_session.__aexit__ = AsyncMock(return_value=False)
+        fake_session.execute = AsyncMock(return_value=MagicMock())
+        monkeypatch.setattr("app.main.async_session_factory", lambda: fake_session)
+
         response = await client.get(
             "/api/health",
             headers={"Origin": "http://evil.com"},
