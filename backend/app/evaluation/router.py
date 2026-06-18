@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user_token
+from app.courses.access import require_active_enrollment_for_quest
 from app.courses.models import Course
 from app.database import get_db
 from app.evaluation.models import CommsLog
@@ -82,6 +83,9 @@ async def submit_answer(
     quest = quest_result.scalar_one_or_none()
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
+
+    # Require an active enrollment in the quest's course before evaluating.
+    await require_active_enrollment_for_quest(db, user_id, quest_id)
 
     # Check quest type matches
     if quest.evaluation_type != body.type:
@@ -163,6 +167,10 @@ async def submit_answer_from_file(
     quest = quest_result.scalar_one_or_none()
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
+
+    # Require an active enrollment in the quest's course before evaluating.
+    await require_active_enrollment_for_quest(db, user_id, quest_id)
+
     if quest.evaluation_type != "text_answer":
         raise HTTPException(
             status_code=400,
@@ -217,6 +225,9 @@ async def request_hint(
     quest = quest_result.scalar_one_or_none()
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
+
+    # Require an active enrollment in the quest's course before serving a hint.
+    await require_active_enrollment_for_quest(db, user_id, quest_id)
 
     qs_result = await db.execute(
         select(QuestState).where(QuestState.user_id == user_id, QuestState.quest_id == quest_id)

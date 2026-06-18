@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.admin.deps import require_service_token
 from app.auth.dependencies import get_current_user_token
 from app.courses.models import Course, Enrollment
 from app.courses.schemas import (
@@ -102,7 +103,11 @@ async def get_course(
 # --- Enrollment ---
 
 
-@router.post("/api/courses/{course_id}/enroll", status_code=201)
+@router.post(
+    "/api/courses/{course_id}/enroll",
+    status_code=201,
+    dependencies=[Depends(require_service_token)],
+)
 @limiter.limit(ENROLLMENT_RATE_LIMIT, key_func=_get_user_id_or_ip)
 async def enroll(
     request: Request,

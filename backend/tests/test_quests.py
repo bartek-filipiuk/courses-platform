@@ -114,12 +114,16 @@ async def test_briefing_available_quest_returns_200(student_token, mock_db):
     mock_quest.max_hints = 3
     mock_quest.skills = ["Python", "API"]
 
-    # First call: get quest_state, second: get quest
+    # Call order: get quest_state, enrollment check (require_active_enrollment_for_quest),
+    # then get quest. The enrollment check uses .first() — return a row so the user
+    # counts as enrolled and the legitimate flow proceeds.
     mock_result_qs = MagicMock()
     mock_result_qs.scalar_one_or_none.return_value = mock_qs
+    mock_result_enrollment = MagicMock()
+    mock_result_enrollment.first.return_value = (mock_qs,)  # any non-None row = enrolled
     mock_result_quest = MagicMock()
     mock_result_quest.scalar_one_or_none.return_value = mock_quest
-    mock_db.execute.side_effect = [mock_result_qs, mock_result_quest]
+    mock_db.execute.side_effect = [mock_result_qs, mock_result_enrollment, mock_result_quest]
 
     with patch("app.auth.dependencies.is_token_blacklisted", return_value=False):
         transport = ASGITransport(app=app)

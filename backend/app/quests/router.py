@@ -7,6 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user_token
+from app.courses.access import (
+    require_active_enrollment_for_course,
+    require_active_enrollment_for_quest,
+)
 from app.courses.router import _require_admin
 from app.database import get_db
 from app.quests.models import ArtifactDefinition, Quest, QuestState, UserArtifact
@@ -38,6 +42,9 @@ async def get_briefing(
     if quest_state is None or quest_state.state == "LOCKED":
         raise HTTPException(status_code=403, detail="Quest is locked")
 
+    # Require an active enrollment in the quest's course before serving content.
+    await require_active_enrollment_for_quest(db, user_id, quest_id)
+
     result = await db.execute(select(Quest).where(Quest.id == quest_id))
     quest = result.scalar_one_or_none()
     if not quest:
@@ -63,6 +70,8 @@ async def get_quest_status(
     quest_state = await _get_quest_state(db, user_id, quest_id)
     if quest_state is None:
         raise HTTPException(status_code=404, detail="Quest state not found")
+    # Require an active enrollment in the quest's course before serving status.
+    await require_active_enrollment_for_quest(db, user_id, quest_id)
     return {
         "quest_id": quest_id,
         "state": quest_state.state,
@@ -123,6 +132,10 @@ async def get_active_quest(
     in the Starter Pack to know what the student is working on right now.
     """
     user_id = uuid.UUID(token_data["sub"])
+
+    # When scoped to a specific course, require an active enrollment in it.
+    if course_id:
+        await require_active_enrollment_for_course(db, user_id, course_id)
 
     query = (
         select(QuestState, Quest)

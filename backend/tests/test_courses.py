@@ -142,8 +142,15 @@ async def test_list_courses(student_token, mock_db):
 
 
 @pytest.mark.asyncio
-async def test_enroll_success(student_token, mock_db):
-    """POST /api/courses/{id}/enroll — student can enroll."""
+async def test_enroll_success(student_token, mock_db, monkeypatch):
+    """POST /api/courses/{id}/enroll — service-token caller can enroll.
+
+    Self-service enroll is now service-token-only (Task 1: closes the free
+    bypass). The legitimate flow must send X-Service-Token.
+    """
+    from app.config import settings
+    monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
+
     mock_course = _mock_course(is_published=True)
 
     # First execute: find course. Second: check existing enrollment.
@@ -153,12 +160,15 @@ async def test_enroll_success(student_token, mock_db):
     mock_result_enroll.scalar_one_or_none.return_value = None
     mock_db.execute.side_effect = [mock_result_course, mock_result_enroll]
 
-    with patch("app.auth.dependencies.is_token_blacklisted", return_value=False):
+    with (
+        patch("app.auth.dependencies.is_token_blacklisted", return_value=False),
+        patch("app.quests.state_machine.initialize_quest_states", AsyncMock()),
+    ):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post(
                 f"/api/courses/{mock_course.id}/enroll",
-                headers=_auth(student_token),
+                headers={**_auth(student_token), "X-Service-Token": "secret"},
             )
         assert resp.status_code == 201
         mock_db.add.assert_called_once()
