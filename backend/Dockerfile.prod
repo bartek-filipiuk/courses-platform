@@ -1,0 +1,81 @@
+# syntax=docker/dockerfile:1
+
+###############################################################################
+# NDQS backend — PRODUCTION image (do NOT use for local dev; see Dockerfile)
+#
+# - Reproducible installs from uv.lock via `uv sync --frozen` (the repo's
+#   committed lockfile is the source of truth).
+# - Multi-stage: deps are built into a self-contained .venv in the builder,
+#   then copied into a slim runtime image.
+# - Runs as a non-root user.
+# - On boot: `alembic upgrade head` then serve with uvicorn (NO --reload).
+#   If migrations fail the container exits (fail-fast) — same pattern as the
+#   devince deployments.
+###############################################################################
+
+############################
+# Stage 1 — builder (deps) #
+############################
+FROM python:3.11-slim AS builder
+
+# uv: fast, reproducible installer. Pinned image == pinned uv version.
+COPY --from=ghcr.io/astral-sh/uv:0.9.14 /uv /uvx /bin/
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
+
+WORKDIR /app
+
+# Build tooling for any wheels that need compiling (e.g. bcrypt fallback).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# 1) Install ONLY third-party deps first (no project source) so this layer is
+#    cached across source-only changes. --no-install-project skips building the
+#    local `app` package; --no-dev excludes pytest/ruff/etc.
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-install-project
+
+# 2) Now add the project source and install the project itself into the venv.
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+############################
+# Stage 2 — runtime        #
+############################
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:$PATH"
+
+# curl is used by the compose healthcheck hitting /api/health.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 app \
+    && useradd --system --uid 1001 --gid app --create-home app
+
+WORKDIR /app
+
+# Bring over the resolved virtualenv and the application code.
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --chown=app:app app ./app
+COPY --chown=app:app alembic ./alembic
+COPY --chown=app:app alembic.ini ./alembic.ini
+COPY --chown=app:app pyproject.toml ./pyproject.toml
+
+USER app
+
+EXPOSE 8000
+
+# Migrate then serve. WORKDIR is the backend root so `alembic` finds
+# alembic.ini (script_location = %(here)s/alembic, prepend_sys_path = .).
+# Fail-fast: a failed migration aborts the chain and the container exits.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

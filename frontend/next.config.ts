@@ -34,6 +34,9 @@ const securityHeaders = [
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const nextConfig: NextConfig = {
+	// Emit a self-contained server bundle (.next/standalone) so the production
+	// Docker runtime image stays small and ships without node_modules.
+	output: "standalone",
 	async headers() {
 		return [
 			{
