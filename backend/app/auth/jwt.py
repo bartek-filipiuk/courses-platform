@@ -45,9 +45,10 @@ def create_refresh_token(
 def create_magic_token(user_id: str, email: str) -> str:
     """Mint a single-use magic-link token (type="magic", 15-min expiry, jti).
 
-    Signed with JWT_REFRESH_SECRET so ``decode_token(token, "magic")`` — which
-    uses that secret for any non-"access" type — can verify it. Magic tokens are
-    isolated from access tokens by the "type" claim that ``decode_token`` enforces.
+    Signed with the dedicated ``MAGIC_SECRET`` (NOT the refresh secret) so a
+    refresh-secret leak cannot forge passwordless-login tokens. ``decode_token``
+    selects the verification secret by token "type", so it verifies magic tokens
+    with the same ``MAGIC_SECRET``.
     """
     expire = datetime.now(UTC) + timedelta(minutes=MAGIC_TOKEN_EXPIRE_MINUTES)
     to_encode = {
@@ -57,11 +58,23 @@ def create_magic_token(user_id: str, email: str) -> str:
         "exp": expire,
         "jti": str(uuid.uuid4()),
     }
-    return jwt.encode(to_encode, settings.JWT_REFRESH_SECRET, algorithm="HS256")
+    return jwt.encode(to_encode, settings.MAGIC_SECRET, algorithm="HS256")
+
+
+# Per-token-type signing/verification secret. Each token class gets its own
+# secret so a leak of one cannot forge the others (access vs refresh vs magic).
+_SECRET_BY_TYPE = {
+    "access": "JWT_SECRET_KEY",
+    "refresh": "JWT_REFRESH_SECRET",
+    "magic": "MAGIC_SECRET",
+}
 
 
 def decode_token(token: str, token_type: str = "access") -> dict:
-    secret = settings.JWT_SECRET_KEY if token_type == "access" else settings.JWT_REFRESH_SECRET
+    secret_attr = _SECRET_BY_TYPE.get(token_type)
+    if secret_attr is None:
+        raise TokenError(f"Unknown token type: {token_type}")
+    secret = getattr(settings, secret_attr)
     try:
         payload = jwt.decode(token, secret, algorithms=["HS256"])
     except jwt.PyJWTError as e:

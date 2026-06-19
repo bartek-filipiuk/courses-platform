@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     JWT_SECRET_KEY: str = "change-me-in-production"
     JWT_REFRESH_SECRET: str = "change-me-in-production"
+    # Dedicated secret for passwordless magic-link tokens. Kept SEPARATE from the
+    # refresh secret so a refresh-secret leak cannot forge magic-login tokens
+    # (the magic token is the passwordless-login primitive).
+    MAGIC_SECRET: str = "change-me-in-production"
     OPENROUTER_API_KEY: str = ""
     REDIS_URL: str = "redis://localhost:6379/0"
     ENVIRONMENT: str = "development"
@@ -31,7 +35,7 @@ class Settings(BaseSettings):
         if self.ENVIRONMENT != "production":
             return self
         errors = []
-        for field in ("JWT_SECRET_KEY", "JWT_REFRESH_SECRET"):
+        for field in ("JWT_SECRET_KEY", "JWT_REFRESH_SECRET", "MAGIC_SECRET"):
             value = getattr(self, field)
             if value == "change-me-in-production":
                 errors.append(f"{field} must not use the default placeholder in production")

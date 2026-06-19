@@ -48,6 +48,63 @@ async def test_garbage_token_rejected() -> None:
 
 
 @pytest.mark.asyncio
+async def test_magic_token_signed_with_magic_secret_roundtrips() -> None:
+    """A magic token minted by create_magic_token verifies + consumes cleanly."""
+    tok = create_magic_token("user-7", "round@trip.pl")
+    with (
+        patch("app.auth.magic.is_token_blacklisted", AsyncMock(return_value=False)),
+        patch("app.auth.magic.blacklist_token", AsyncMock()),
+    ):
+        out = await consume_magic_token(tok)
+    assert out == {"sub": "user-7", "email": "round@trip.pl"}
+
+
+def test_magic_token_uses_dedicated_secret_not_refresh() -> None:
+    """The magic token must be signed with MAGIC_SECRET, not the refresh secret.
+
+    A token forged with the OLD scheme (signed with JWT_REFRESH_SECRET) must NOT
+    decode as a magic token once they are decoupled.
+    """
+    import jwt as pyjwt
+
+    from app.auth.jwt import TokenError, decode_token
+    from app.config import settings
+
+    # Token minted the OLD way: type=magic but signed with the REFRESH secret.
+    legacy = pyjwt.encode(
+        {"sub": "u", "email": "e@x.pl", "type": "magic", "jti": "j1"},
+        settings.JWT_REFRESH_SECRET,
+        algorithm="HS256",
+    )
+    with pytest.raises(TokenError):
+        decode_token(legacy, "magic")
+
+    # And the new token (signed with MAGIC_SECRET) decodes fine as magic.
+    fresh = create_magic_token("u", "e@x.pl")
+    assert decode_token(fresh, "magic")["type"] == "magic"
+
+
+def test_access_and_refresh_paths_unchanged() -> None:
+    """Decoupling magic must not touch the access/refresh secret selection."""
+    from app.auth.jwt import (
+        TokenError,
+        create_access_token,
+        create_refresh_token,
+        decode_token,
+    )
+
+    acc = create_access_token({"sub": "u", "email": "e@x.pl"})
+    ref = create_refresh_token({"sub": "u", "email": "e@x.pl"})
+    assert decode_token(acc, "access")["type"] == "access"
+    assert decode_token(ref, "refresh")["type"] == "refresh"
+    # Cross-secret: an access token must not validate under the refresh secret.
+    with pytest.raises(TokenError):
+        decode_token(acc, "refresh")
+    with pytest.raises(TokenError):
+        decode_token(ref, "access")
+
+
+@pytest.mark.asyncio
 async def test_access_token_rejected_as_magic() -> None:
     """A non-magic token (wrong type claim) must not be consumable as magic."""
     from app.auth.jwt import create_access_token
