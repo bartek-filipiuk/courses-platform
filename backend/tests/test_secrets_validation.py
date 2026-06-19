@@ -47,12 +47,43 @@ class TestSecretsValidation:
                 JWT_REFRESH_SECRET="short",
             )
 
+    def test_magic_secret_rejects_default_in_production(self) -> None:
+        """In production, MAGIC_SECRET must not be the default placeholder."""
+        from app.config import Settings
+
+        with pytest.raises(ValidationError):
+            Settings(
+                ENVIRONMENT="production",
+                JWT_SECRET_KEY="a-real-secret-key-32chars-long!!",
+                JWT_REFRESH_SECRET="another-real-secret-key-at-least-32-chars",
+                MAGIC_SECRET="change-me-in-production",
+            )
+
+    def test_magic_secret_minimum_length(self) -> None:
+        """MAGIC_SECRET must be at least 32 characters in production."""
+        from app.config import Settings
+
+        with pytest.raises(ValidationError):
+            Settings(
+                ENVIRONMENT="production",
+                JWT_SECRET_KEY="a-real-secret-key-32chars-long!!",
+                JWT_REFRESH_SECRET="another-real-secret-key-at-least-32-chars",
+                MAGIC_SECRET="short",
+            )
+
     def test_development_allows_defaults(self) -> None:
         """In development, default placeholder values are allowed."""
         from app.config import Settings
 
         s = Settings(ENVIRONMENT="development")
         assert s.JWT_SECRET_KEY == "change-me-in-production"
+
+    def test_magic_secret_default_value(self) -> None:
+        """MAGIC_SECRET defaults to the same dev placeholder as the other secrets."""
+        from app.config import Settings
+
+        # Model field default (independent of any local .env overrides).
+        assert Settings.model_fields["MAGIC_SECRET"].default == "change-me-in-production"
 
     def test_production_accepts_proper_secrets(self) -> None:
         """Valid production secrets should be accepted."""
@@ -62,6 +93,7 @@ class TestSecretsValidation:
             ENVIRONMENT="production",
             JWT_SECRET_KEY="a-real-secret-key-that-is-at-least-32-chars",
             JWT_REFRESH_SECRET="another-real-secret-key-at-least-32-chars",
+            MAGIC_SECRET="a-third-real-secret-key-at-least-32-chars",
         )
         assert s.ENVIRONMENT == "production"
 

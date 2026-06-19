@@ -1,11 +1,13 @@
 """Deterministic evaluation — quiz, url_check, command_output."""
 
+import ipaddress
 import re
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 import structlog
 
-from app.net_guard import assert_public_url
+from app.net_guard import assert_public_url, _is_non_public
 
 logger = structlog.get_logger()
 
@@ -45,18 +47,39 @@ async def _evaluate_url_check(payload: dict, criteria: dict) -> dict:
 
     # SSRF guard: the URL is learner-supplied, so block private/internal targets
     # (redis/db, host loopback, cloud metadata) before we fetch anything.
+    # require_https defaults to True so plain http:// internal targets are
+    # rejected unless a quest explicitly opts out (require_https=False).
     try:
-        await assert_public_url(url, require_https=criteria.get("require_https", False))
+        pinned_ip = await assert_public_url(
+            url, require_https=criteria.get("require_https", True)
+        )
     except ValueError:
         return {"passed": False, "error": "URL not allowed"}
+
+    # Close the DNS-rebinding TOCTOU: connect to the EXACT IP we validated
+    # instead of letting httpx re-resolve the hostname at fetch time. We rewrite
+    # the URL host to the pinned IP, but preserve the original hostname for both
+    # the Host header (vhost routing) and the TLS SNI/cert check (sni_hostname).
+    parts = urlsplit(url)
+    original_host = parts.hostname or ""
+    # Defence in depth: the pinned IP came from assert_public_url, but re-check.
+    if _is_non_public(ipaddress.ip_address(pinned_ip)):
+        return {"passed": False, "error": "URL not allowed"}
+    ip_host = f"[{pinned_ip}]" if ":" in pinned_ip else pinned_ip
+    netloc = f"{ip_host}:{parts.port}" if parts.port else ip_host
+    pinned_url = urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
+    request_headers = dict(criteria.get("request_headers", {}))
+    request_headers["Host"] = original_host
 
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
             resp = await client.request(
                 method,
-                url,
+                pinned_url,
                 json=criteria.get("request_body"),
-                headers=criteria.get("request_headers", {}),
+                headers=request_headers,
+                extensions={"sni_hostname": original_host},
             )
 
         status_ok = resp.status_code == expected_status
