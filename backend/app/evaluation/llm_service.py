@@ -1,6 +1,7 @@
 """LLM Judge — builds prompt and calls OpenRouter for Game Master evaluation."""
 
 import json
+import uuid
 
 from app.evaluation.openrouter_client import call_llm
 from app.quests.models import Quest
@@ -14,13 +15,15 @@ async def evaluate_with_llm(
     persona_name: str | None = None,
     global_context: str | None = None,
     model_id: str | None = None,
+    *,
+    user_id: uuid.UUID,
 ) -> dict:
     """Build evaluation prompt and call LLM Judge via OpenRouter."""
 
     system_prompt = _build_system_prompt(persona_prompt, persona_name, global_context)
     user_prompt = _build_user_prompt(quest, student_answer, deterministic_results)
 
-    return await call_llm(system_prompt, user_prompt, model=model_id)
+    return await call_llm(system_prompt, user_prompt, model=model_id, user_id=user_id)
 
 
 def _build_system_prompt(

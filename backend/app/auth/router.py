@@ -113,7 +113,7 @@ async def refresh_token(request: Request) -> dict:
     new_access = create_access_token(
         data={"sub": user_id, "role": payload.get("role", "student"), "email": payload.get("email")}
     )
-    new_refresh = create_refresh_token(data={"sub": user_id})
+    new_refresh = create_refresh_token(data={"sub": user_id, "email": payload.get("email")})
 
     return {
         "access_token": new_access,

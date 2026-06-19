@@ -22,10 +22,19 @@ from app.courses.schemas import (
     CourseUpdate,
     EnrollmentResponse,
 )
+from app.config import settings
 from app.database import get_db
 from app.rate_limit import ENROLLMENT_RATE_LIMIT, STARTER_PACK_RATE_LIMIT, _get_user_id_or_ip, limiter
 
 router = APIRouter(tags=["courses"])
+
+
+def build_starter_env(api_url: str) -> str:
+    """Return the .env.example content for the starter pack with the given API URL."""
+    return f"""# NDQS Platform Configuration
+NDQS_API_KEY=paste_your_api_key_here
+NDQS_API_URL={api_url}
+"""
 
 
 # --- Admin endpoints ---
@@ -327,10 +336,7 @@ Submit zwraca JSON:
         zf.writestr("CLAUDE.md", claude_md)
         zf.writestr("AGENTS.md", claude_md)  # same content, for Cursor/Windsurf conventions
 
-        env_example = """# NDQS Platform Configuration
-NDQS_API_KEY=paste_your_api_key_here
-NDQS_API_URL=http://localhost:8002
-"""
+        env_example = build_starter_env(settings.BACKEND_URL)
         zf.writestr(".env.example", env_example)
 
         readme = f"""# {course.title}

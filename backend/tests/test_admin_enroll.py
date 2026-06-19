@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 
 from app.admin.deps import require_service_token
+from app.admin.service import enroll_user_by_email
 from app.config import settings
 from app.database import get_db
 from app.main import app
@@ -183,9 +184,13 @@ async def test_re_enroll_after_revoke_clears_revoked_at(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_enroll_existing_active_user_does_not_touch_revoked_at(monkeypatch):
-    """An idempotent re-enroll of an already-ACTIVE user must not commit a
-    spurious re-grant: revoked_at is already None, so no UPDATE/commit for it."""
+async def test_enroll_existing_active_user_ensures_states_without_touching_revoked_at(monkeypatch):
+    """Re-enroll of an already-ACTIVE user is the partial-failure REPAIR path.
+
+    revoked_at is already None, so it stays untouched and no NEW enrollment row is
+    inserted. But quest states are ENSURED (idempotent) so a buyer whose states
+    never got created on the first attempt is repaired on retry. The whole thing
+    commits exactly once (the single atomic transaction)."""
     monkeypatch.setattr(settings, "NDQS_SERVICE_TOKEN", "secret")
     db = AsyncMock()
     existing_user = MagicMock()
@@ -218,11 +223,12 @@ async def test_enroll_existing_active_user_does_not_touch_revoked_at(monkeypatch
                 )
             assert r.status_code == 201
             assert r.json()["status"] == "enrolled"
+            # revoked_at left untouched, no spurious new enrollment row.
             assert active_enrollment.revoked_at is None
             db.add.assert_not_called()
-            iqs.assert_not_awaited()
-            # No DB commit needed for an already-active enrollment.
-            db.commit.assert_not_awaited()
+            # Quest states ENSURED (idempotent repair) and committed once.
+            iqs.assert_awaited_once()
+            assert db.commit.await_count == 1
             send.assert_awaited_once()
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -360,3 +366,57 @@ async def test_revoke_rejects_bad_service_token(monkeypatch):
             json={"email": "x@y.pl", "course_id": str(uuid.uuid4())},
         )
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_enroll_is_single_transaction(monkeypatch):
+    """The create path is ONE atomic transaction: user upsert + enrollment +
+    quest-state init commit together exactly once (was 2-3 commits, with a
+    partial-failure hole between the enrollment commit and quest init)."""
+    # user absent -> created; course present+published; enrollment absent
+    db = AsyncMock()
+    user_res = MagicMock()
+    user_res.scalar_one_or_none.return_value = None
+    course = MagicMock()
+    course.is_published = True
+    course_res = MagicMock()
+    course_res.scalar_one_or_none.return_value = course
+    enr_res = MagicMock()
+    enr_res.scalar_one_or_none.return_value = None
+    db.execute.side_effect = [user_res, course_res, enr_res]
+    with (
+        patch("app.admin.service.initialize_quest_states", AsyncMock()) as iqs,
+        patch("app.admin.service.send_magic_link_email", AsyncMock()),
+    ):
+        await enroll_user_by_email(db, "buyer@x.pl", uuid.uuid4())
+    iqs.assert_awaited_once()
+    assert db.commit.await_count == 1  # single transaction, not 2-3
+
+
+@pytest.mark.asyncio
+async def test_enroll_existing_nonrevoked_still_ensures_quest_states(monkeypatch):
+    """Repair path: an enrollment that exists and is non-revoked may be the
+    survivor of a mid-failure (enrollment committed, quest-init never ran).
+    Quest-state init is invoked unconditionally on this path (idempotent ensure),
+    so a webhook retry repairs the missing states instead of skipping them."""
+    db = AsyncMock()
+    user = MagicMock()
+    user.id = uuid.uuid4()
+    user.email = "buyer@x.pl"  # needed so the post-commit magic-token mint works
+    user_res = MagicMock()
+    user_res.scalar_one_or_none.return_value = user
+    course = MagicMock()
+    course.is_published = True
+    course_res = MagicMock()
+    course_res.scalar_one_or_none.return_value = course
+    enr = MagicMock()
+    enr.revoked_at = None
+    enr_res = MagicMock()
+    enr_res.scalar_one_or_none.return_value = enr
+    db.execute.side_effect = [user_res, course_res, enr_res]
+    with (
+        patch("app.admin.service.initialize_quest_states", AsyncMock()) as iqs,
+        patch("app.admin.service.send_magic_link_email", AsyncMock()),
+    ):
+        await enroll_user_by_email(db, "buyer@x.pl", uuid.uuid4())
+    iqs.assert_awaited()  # ensure-states runs even when enrollment already exists

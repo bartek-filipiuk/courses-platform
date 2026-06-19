@@ -1,6 +1,7 @@
 import traceback
 import uuid
 
+import sentry_sdk
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -12,10 +13,13 @@ from slowapi.errors import RateLimitExceeded
 
 from contextlib import asynccontextmanager
 
+from sqlalchemy import text
+
 from app.admin.router import router as admin_router
 from app.auth.magic_router import router as magic_router
 from app.auth.router import router as auth_router
 from app.courses.router import router as courses_router
+from app.database import async_session_factory
 from app.evaluation.router import router as evaluation_router
 from app.quests.router import router as quests_router
 from app.stats.router import router as stats_router
@@ -23,12 +27,29 @@ from app.config import settings
 from app.logging import setup_logging
 from app.middleware import CorrelationIdMiddleware, OriginCheckMiddleware, SecurityHeadersMiddleware
 from app.rate_limit import limiter
-from app.redis import close_redis
+from app.redis import close_redis, get_redis
 
 # Initialize structured logging
 setup_logging()
 
 logger = structlog.get_logger()
+
+
+def init_sentry() -> None:
+    """Initialize Sentry if SENTRY_DSN is configured.
+
+    No-op when SENTRY_DSN is unset so local/dev runs need no DSN.
+    """
+    if settings.SENTRY_DSN:
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.ENVIRONMENT,
+            traces_sample_rate=0.0,
+        )
+
+
+# Run at module load — no-op when SENTRY_DSN is unset
+init_sentry()
 
 
 @asynccontextmanager
@@ -115,12 +136,48 @@ app.include_router(stats_router)
 app.include_router(admin_router)
 
 
+async def _check_dependencies() -> dict:
+    """Ping DB and Redis; return {'db': 'ok'|'down', 'redis': 'ok'|'down'}."""
+    db_status = "down"
+    try:
+        async with async_session_factory() as session:
+            await session.execute(text("SELECT 1"))
+        db_status = "ok"
+    except Exception:
+        pass
+
+    redis_status = "down"
+    try:
+        await (await get_redis()).ping()
+        redis_status = "ok"
+    except Exception:
+        pass
+
+    return {"db": db_status, "redis": redis_status}
+
+
 @app.get("/api/health")
-async def health() -> dict:
-    return {"status": "ok", "service": "ndqs-backend"}
+async def health() -> JSONResponse:
+    deps = await _check_dependencies()
+    all_ok = deps["db"] == "ok" and deps["redis"] == "ok"
+    payload = {
+        "status": "ok" if all_ok else "degraded",
+        "service": "ndqs-backend",
+        **deps,
+    }
+    status_code = 200 if all_ok else 503
+    return JSONResponse(status_code=status_code, content=payload)
 
 
-@app.get("/api/health/error-test")
-async def error_test() -> None:
-    msg = "Test error for exception handler verification"
-    raise RuntimeError(msg)
+@app.get("/api/ready")
+async def ready() -> JSONResponse:
+    """Strict readiness probe — 503 unless DB + Redis both reachable."""
+    deps = await _check_dependencies()
+    all_ok = deps["db"] == "ok" and deps["redis"] == "ok"
+    payload = {
+        "status": "ok" if all_ok else "not_ready",
+        "service": "ndqs-backend",
+        **deps,
+    }
+    status_code = 200 if all_ok else 503
+    return JSONResponse(status_code=status_code, content=payload)

@@ -139,6 +139,30 @@ class TestAuthEndpoints:
         assert data["refresh_token"] != refresh
 
     @pytest.mark.asyncio
+    async def test_refresh_rotation_preserves_email(self, client: AsyncClient) -> None:
+        """Email claim must survive a full rotation cycle (Fix B4 #18).
+
+        After one rotation the NEW refresh token must still carry the same email
+        so the NEXT rotation can mint an access token with the correct email claim.
+        """
+        from app.auth.jwt import create_refresh_token, decode_token
+
+        user_id = str(uuid.uuid4())
+        email = "rotation@example.com"
+        refresh = create_refresh_token(data={"sub": user_id, "email": email})
+        response = await client.post(
+            "/api/auth/refresh",
+            headers={"Authorization": f"Bearer {refresh}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        new_refresh = data["refresh_token"]
+        new_payload = decode_token(new_refresh, token_type="refresh")
+        assert new_payload.get("email") == email, (
+            f"email claim lost after rotation; got: {new_payload.get('email')!r}"
+        )
+
+    @pytest.mark.asyncio
     async def test_logout_with_valid_token_returns_ok(self, client: AsyncClient) -> None:
         from app.auth.jwt import create_access_token
 

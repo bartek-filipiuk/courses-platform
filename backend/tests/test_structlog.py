@@ -35,13 +35,37 @@ class TestStructlogSetup:
 
 class TestCorrelationId:
     @pytest.mark.asyncio
-    async def test_response_has_correlation_id_header(self, client: AsyncClient) -> None:
+    async def test_response_has_correlation_id_header(self, client: AsyncClient, monkeypatch) -> None:
+        from unittest.mock import AsyncMock, MagicMock
+
+        fake = AsyncMock()
+        fake.ping.return_value = True
+        monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
+
+        fake_session = AsyncMock()
+        fake_session.__aenter__ = AsyncMock(return_value=fake_session)
+        fake_session.__aexit__ = AsyncMock(return_value=False)
+        fake_session.execute = AsyncMock(return_value=MagicMock())
+        monkeypatch.setattr("app.main.async_session_factory", lambda: fake_session)
+
         response = await client.get("/api/health")
         assert response.status_code == 200
         assert "x-correlation-id" in response.headers
 
     @pytest.mark.asyncio
-    async def test_correlation_id_is_valid_uuid(self, client: AsyncClient) -> None:
+    async def test_correlation_id_is_valid_uuid(self, client: AsyncClient, monkeypatch) -> None:
+        from unittest.mock import AsyncMock, MagicMock
+
+        fake = AsyncMock()
+        fake.ping.return_value = True
+        monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
+
+        fake_session = AsyncMock()
+        fake_session.__aenter__ = AsyncMock(return_value=fake_session)
+        fake_session.__aexit__ = AsyncMock(return_value=False)
+        fake_session.execute = AsyncMock(return_value=MagicMock())
+        monkeypatch.setattr("app.main.async_session_factory", lambda: fake_session)
+
         response = await client.get("/api/health")
         correlation_id = response.headers.get("x-correlation-id")
         assert correlation_id is not None
@@ -49,7 +73,19 @@ class TestCorrelationId:
         uuid.UUID(correlation_id)
 
     @pytest.mark.asyncio
-    async def test_forwarded_correlation_id_is_preserved(self, client: AsyncClient) -> None:
+    async def test_forwarded_correlation_id_is_preserved(self, client: AsyncClient, monkeypatch) -> None:
+        from unittest.mock import AsyncMock, MagicMock
+
+        fake = AsyncMock()
+        fake.ping.return_value = True
+        monkeypatch.setattr("app.main.get_redis", AsyncMock(return_value=fake))
+
+        fake_session = AsyncMock()
+        fake_session.__aenter__ = AsyncMock(return_value=fake_session)
+        fake_session.__aexit__ = AsyncMock(return_value=False)
+        fake_session.execute = AsyncMock(return_value=MagicMock())
+        monkeypatch.setattr("app.main.async_session_factory", lambda: fake_session)
+
         custom_id = str(uuid.uuid4())
         response = await client.get(
             "/api/health",

@@ -14,13 +14,14 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.jwt import create_access_token, create_magic_token
+from app.auth.jwt import create_access_token, create_magic_token, create_refresh_token
 from app.auth.magic import MagicError, consume_magic_token
 from app.auth.models import User
 from app.config import settings
 from app.database import get_db
 from app.email import send_magic_link_email
-from app.rate_limit import LOGIN_RATE_LIMIT, _get_user_id_or_ip, limiter
+from app.evaluation.models import record_email_failure
+from app.rate_limit import LOGIN_RATE_LIMIT, MAGIC_VERIFY_RATE_LIMIT, _get_user_id_or_ip, limiter
 
 logger = logging.getLogger(__name__)
 
@@ -48,17 +49,19 @@ async def magic_request(
         # unknown email → no send → 200). Always return 200 {"sent": True}.
         try:
             await send_magic_link_email(user.email, link)
-        except Exception:
+        except Exception as exc:
             logger.warning(
                 "magic-link email failed for %s; reporting sent anyway (no-leak)",
                 user.email,
                 exc_info=True,
             )
+            await record_email_failure(db, user.email, "magic", str(exc), user_id=user.id)
     return {"sent": True}
 
 
 @router.get("/verify")
-async def magic_verify(token: str) -> JSONResponse:
+@limiter.limit(MAGIC_VERIFY_RATE_LIMIT, key_func=_get_user_id_or_ip)
+async def magic_verify(request: Request, token: str) -> JSONResponse:
     try:
         ident = await consume_magic_token(token)
     except MagicError:
@@ -66,6 +69,12 @@ async def magic_verify(token: str) -> JSONResponse:
     access = create_access_token(
         data={"sub": ident["sub"], "role": "student", "email": ident["email"]}
     )
+    refresh = create_refresh_token(data={"sub": ident["sub"], "email": ident["email"]})
     return JSONResponse(
-        {"access_token": access, "token_type": "bearer", "user_id": ident["sub"]}
+        {
+            "access_token": access,
+            "refresh_token": refresh,
+            "token_type": "bearer",
+            "user_id": ident["sub"],
+        }
     )

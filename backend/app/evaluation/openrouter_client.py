@@ -3,11 +3,14 @@
 import json
 import re
 import asyncio
+import uuid
 
 import httpx
 import structlog
+from fastapi import HTTPException
 
 from app.config import settings
+from app.redis import get_redis
 
 logger = structlog.get_logger()
 
@@ -28,17 +31,47 @@ async def call_llm(
     system_prompt: str,
     user_prompt: str,
     model: str | None = None,
+    *,
+    user_id: uuid.UUID,
 ) -> dict:
     """Call OpenRouter API with retry and structured JSON output.
 
+    Enforces a per-user daily call cap via Redis before issuing the request.
+
     Returns parsed JSON dict with keys: passed, narrative_response, quality_scores, matched_failure.
+
+    Raises HTTPException(429) when the user exceeds LLM_DAILY_CAP_PER_USER for the day.
     """
+    # Per-user daily call cap. incr exactly once per call; TTL set only on the
+    # first call of the day (count == 1) so the window is a rolling 24h.
+    r = await get_redis()
+    key = f"llm_calls:{user_id}:daily"
+    count = await r.incr(key)
+    if count == 1:
+        await r.expire(key, 86400)
+    if count > settings.LLM_DAILY_CAP_PER_USER:
+        logger.warning("llm_daily_cap_exceeded", user_id=str(user_id), count=count)
+        raise HTTPException(status_code=429, detail="Daily LLM limit exceeded")
+
     model = model or DEFAULT_MODEL
 
     if not settings.OPENROUTER_API_KEY:
         logger.warning("openrouter_api_key_missing", model=model)
         return FALLBACK_RESPONSE
 
+    return await _http_post_llm(system_prompt, user_prompt, model)
+
+
+async def _http_post_llm(
+    system_prompt: str,
+    user_prompt: str,
+    model: str,
+) -> dict:
+    """Issue the OpenRouter HTTP request with retry and structured JSON parsing.
+
+    Internal helper, separated from call_llm so the Redis cap can be tested
+    without mocking the network and vice versa.
+    """
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
